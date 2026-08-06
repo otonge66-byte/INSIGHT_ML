@@ -8,7 +8,26 @@ export const NeuralDigitProject: React.FC = () => {
 
   const STEPS = [
     {
-      title: "1. The 256-Neuron Input Layer",
+      title: "1. The Goal: Reading Human Handwriting",
+      content: (
+        <div className="space-y-4">
+          <p className="text-lg leading-relaxed text-[#c8ecd0]">
+            Google Photos can instantly search handwritten text in scanned receipts. Post offices automatically sort millions of letters every day by reading zip codes written by thousands of different people. Mobile banking apps let you deposit checks by snapping a picture of hand-written dollar amounts.
+          </p>
+          <div className="bg-[#1e140e] border-2 border-[#382219] p-4 font-vt323 text-lg space-y-2">
+            <div className="text-[#dda15e] font-pixel text-[10px] mb-2">👁️ REAL-WORLD TASK</div>
+            <p className="text-sm text-[#a3b18a]">
+              At the heart of all of these applications is a computer vision model trained on handwritten digits. Everyone writes numbers differently—some tilt their 7s, loop their 8s, or cross their 4s. A simple linear classifier fails on this task, but a 2-layer Neural Network can extract spatial strokes and recognize any digit with high precision.
+            </p>
+          </div>
+          <p className="text-base text-[#a3b18a]">
+            Let&apos;s break down how this 256-input neural network sees pixel grids and classifies handwritten numbers!
+          </p>
+        </div>
+      ),
+    },
+    {
+      title: "2. The 256-Neuron Input Layer",
       content: (
         <div className="space-y-4">
           <p className="text-lg leading-relaxed text-[#c8ecd0]">
@@ -24,14 +43,14 @@ export const NeuralDigitProject: React.FC = () => {
       ),
     },
     {
-      title: "2. Hidden Feature Detectors",
+      title: "3. Hidden Feature Detectors",
       content: (
         <div className="space-y-4">
           <p className="text-lg leading-relaxed text-[#c8ecd0]">
             The 16 neurons in the hidden layer act as sub-feature detectors. During training, weights adjust so that specific hidden neurons activate strongly in response to specific stroke geometries (e.g. horizontal lines, loops, or diagonal arcs).
           </p>
           <div className="bg-[#1e140e] border-2 border-[#382219] p-4 font-vt323 text-lg space-y-2">
-            <div className="text-[#dda15e] font-pixel text-[10px] mb-2">🧠 Feature Activation Blueprint</div>
+            <div className="text-[#dda15e] font-pixel text-[10px] mb-2">🧠 FEATURE ACTIVATION BLUEPRINT</div>
             <div className="grid grid-cols-2 gap-2 text-sm">
               <div><span className="text-[#dda15e] font-bold">Neuron 0:</span> Loop Detector (useful for 0, 8, 9)</div>
               <div><span className="text-[#dda15e] font-bold">Neuron 1:</span> Left Vertical Bar (useful for 4, 5, 6)</div>
@@ -43,7 +62,7 @@ export const NeuralDigitProject: React.FC = () => {
       ),
     },
     {
-      title: "3. Propagation Equation",
+      title: "4. Propagation Equation",
       content: (
         <div className="space-y-4">
           <p className="text-lg leading-relaxed text-[#c8ecd0]">
@@ -65,7 +84,7 @@ export const NeuralDigitProject: React.FC = () => {
       ),
     },
     {
-      title: "4. Outputs & Confidence",
+      title: "5. Outputs & Confidence",
       content: (
         <div className="space-y-4">
           <p className="text-lg leading-relaxed text-[#c8ecd0]">
@@ -81,7 +100,7 @@ export const NeuralDigitProject: React.FC = () => {
       ),
     },
     {
-      title: "5. PyTorch Implementation",
+      title: "6. PyTorch Implementation",
       content: (
         <div className="space-y-4">
           <p className="text-lg leading-relaxed text-[#c8ecd0]">
@@ -128,7 +147,7 @@ class MNISTClassifier(nn.Module):
         <div className="space-y-2 flex-1">
           <div className="flex items-center gap-2">
             <span className="font-pixel text-[9px] bg-[#bc4749] text-[#fefae0] px-2 py-0.5 border border-[#6b2123] uppercase">
-              APPLIED CAPSTONE BLUEPRINT
+              MODULE 03 • APPLIED CAPSTONE
             </span>
             <span className="font-pixel text-[8px] text-[#bc4749]">
               NEURAL NET DIGIT RECOGNIZER
@@ -136,11 +155,11 @@ class MNISTClassifier(nn.Module):
           </div>
 
           <h2 className="font-pixel text-xl text-[#bc4749] uppercase tracking-wide">
-            Narrative Guide: 16×16 Digit &amp; Shape Recognizer
+            Building a Handwritten Digit Recognizer with Neural Networks
           </h2>
 
           <p className="text-lg leading-relaxed text-[#c8ecd0] font-vt323">
-            In this capstone blueprint, I will explain the mathematical architecture of a 2-layer deep neural network. You will learn how pixel arrays propagate forward through weight matrices and hidden layers to enable complex digit recognition.
+            Outstanding work conquering hidden layers and non-linear decision boundaries in the Forest playground! You&apos;ve seen how ReLU activations and hidden nodes allow networks to learn complex curves. Now, let&apos;s step up to the capstone project: deploying the exact same multi-layer architecture to solve a famous real-world vision task. This is the iconic MNIST model that launched the modern deep learning revolution!
           </p>
         </div>
       </div>

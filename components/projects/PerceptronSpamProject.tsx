@@ -8,7 +8,26 @@ export const PerceptronSpamProject: React.FC = () => {
 
   const STEPS = [
     {
-      title: "1. The Binary Feature Vector",
+      title: "1. The Goal: Cleaning Your Inbox",
+      content: (
+        <div className="space-y-4">
+          <p className="text-lg leading-relaxed text-[#c8ecd0]">
+            Every single day, trillions of emails flood across global computer networks. Spam filters in services like Gmail, Outlook, or Apple Mail must instantaneously evaluate incoming messages and decide: <strong className="text-[#dda15e]">INBOX SAFE</strong> or <strong className="text-[#bc4749]">SPAM FOLDER</strong>.
+          </p>
+          <div className="bg-[#1e140e] border-2 border-[#382219] p-4 font-vt323 text-lg space-y-2">
+            <div className="text-[#dda15e] font-pixel text-[10px] mb-2">📥 REAL-WORLD TASK</div>
+            <p className="text-sm text-[#a3b18a]">
+              Before deep neural networks existed, early email gateways used a single Perceptron neuron to solve this problem! By extracting key signals from an email—such as suspicious domain names, urgent keywords, or excessive links—and passing them as binary inputs into a single perceptron, the system computes a total threat score in microseconds.
+            </p>
+          </div>
+          <p className="text-base text-[#a3b18a]">
+            Let&apos;s break down how this real-world spam classifier works, from feature vectors to decision boundaries!
+          </p>
+        </div>
+      ),
+    },
+    {
+      title: "2. The Binary Feature Vector",
       content: (
         <div className="space-y-4">
           <p className="text-lg leading-relaxed text-[#c8ecd0]">
@@ -31,7 +50,7 @@ export const PerceptronSpamProject: React.FC = () => {
       ),
     },
     {
-      title: "2. Weighted Summation & Bias",
+      title: "3. Weighted Summation & Bias",
       content: (
         <div className="space-y-4">
           <p className="text-lg leading-relaxed text-[#c8ecd0]">
@@ -53,7 +72,7 @@ export const PerceptronSpamProject: React.FC = () => {
       ),
     },
     {
-      title: "3. Standalone Python Implementation",
+      title: "4. Standalone Python Implementation",
       content: (
         <div className="space-y-4">
           <p className="text-lg leading-relaxed text-[#c8ecd0]">
@@ -83,7 +102,7 @@ print("Classification:", "SPAM" if is_spam == 1 else "INBOX SAFE")
       ),
     },
     {
-      title: "4. Training Loop Feedback",
+      title: "5. Training Loop Feedback",
       content: (
         <div className="space-y-4">
           <p className="text-lg leading-relaxed text-[#c8ecd0]">
@@ -115,7 +134,7 @@ print("Classification:", "SPAM" if is_spam == 1 else "INBOX SAFE")
         <div className="space-y-2 flex-1">
           <div className="flex items-center gap-2">
             <span className="font-pixel text-[9px] bg-[#386641] text-[#fefae0] px-2 py-0.5 border border-[#1b3521] uppercase">
-              APPLIED PROJECT BLUEPRINT
+              MODULE 01 • APPLIED PROJECT
             </span>
             <span className="font-pixel text-[8px] text-[#8fc99a]">
               PERCEPTRON EMAIL CLASSIFIER
@@ -123,11 +142,11 @@ print("Classification:", "SPAM" if is_spam == 1 else "INBOX SAFE")
           </div>
 
           <h2 className="font-pixel text-xl text-[#7ecb8a] uppercase tracking-wide">
-            Narrative Guide: Rule-Based Email Spam Filter
+            Building an Email Spam &amp; Priority Filter with Perceptrons
           </h2>
 
           <p className="text-lg leading-relaxed text-[#c8ecd0] font-vt323">
-            Welcome to the Applied Blueprint module! Here, I will explain in detail how you can implement a single-neuron spam filter locally on your machine. We treat email features as binary inputs, calculate a weighted linear summation, and apply a step-function threshold to classify emails as spam or safe.
+            Fantastic job mastering decision boundaries and linear weights in the Meadow sandbox! You&apos;ve learned how a single artificial neuron uses weights and a bias threshold to slice data points cleanly into two categories. Now, let&apos;s see how that exact same mathematical concept is deployed at real scale in production software. This is the foundational algorithm that powered early email security and launched automated text classification across the web!
           </p>
         </div>
       </div>

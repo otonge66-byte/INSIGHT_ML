@@ -8,7 +8,26 @@ export const GradientHouseProject: React.FC = () => {
 
   const STEPS = [
     {
-      title: "1. Inputs & Parameters Mapping",
+      title: "1. The Goal: Valuing Property at Scale",
+      content: (
+        <div className="space-y-4">
+          <p className="text-lg leading-relaxed text-[#c8ecd0]">
+            When buying or selling a home, accurately predicting market value is critical. Platforms like Zillow analyze millions of property records to estimate a fair market price based on continuous characteristics like square footage, bedroom count, and location.
+          </p>
+          <div className="bg-[#1e140e] border-2 border-[#382219] p-4 font-vt323 text-lg space-y-2">
+            <div className="text-[#dda15e] font-pixel text-[10px] mb-2">🏘️ REAL-WORLD TASK</div>
+            <p className="text-sm text-[#a3b18a]">
+              Unlike classification models that output a simple YES or NO, pricing estimators must output a precise dollar amount. By formulating a continuous linear model and defining a Mean Squared Error (MSE) loss function over historical sales data, Gradient Descent iteratively tunes the pricing weights to minimize error and hit the target price.
+            </p>
+          </div>
+          <p className="text-base text-[#a3b18a]">
+            Let&apos;s explore how a real estate estimator uses gradient descent to step downhill to optimal valuation weights!
+          </p>
+        </div>
+      ),
+    },
+    {
+      title: "2. Inputs & Parameters Mapping",
       content: (
         <div className="space-y-4">
           <p className="text-lg leading-relaxed text-[#c8ecd0]">
@@ -27,7 +46,7 @@ export const GradientHouseProject: React.FC = () => {
       ),
     },
     {
-      title: "2. Loss / Error Formulation",
+      title: "3. Loss / Error Formulation",
       content: (
         <div className="space-y-4">
           <p className="text-lg leading-relaxed text-[#c8ecd0]">
@@ -46,7 +65,7 @@ export const GradientHouseProject: React.FC = () => {
       ),
     },
     {
-      title: "3. Gradient Descent Steps",
+      title: "4. Gradient Descent Steps",
       content: (
         <div className="space-y-4">
           <p className="text-lg leading-relaxed text-[#c8ecd0]">
@@ -73,7 +92,7 @@ export const GradientHouseProject: React.FC = () => {
       ),
     },
     {
-      title: "4. Python Implementation",
+      title: "5. Python Implementation",
       content: (
         <div className="space-y-4">
           <p className="text-lg leading-relaxed text-[#c8ecd0]">
@@ -123,7 +142,7 @@ export const GradientHouseProject: React.FC = () => {
         <div className="space-y-2 flex-1">
           <div className="flex items-center gap-2">
             <span className="font-pixel text-[9px] bg-[#dda15e] text-[#1e140e] px-2 py-0.5 border border-[#7a5225] uppercase">
-              APPLIED PROJECT BLUEPRINT
+              MODULE 02 • APPLIED PROJECT
             </span>
             <span className="font-pixel text-[8px] text-[#dda15e]">
               GRADIENT HOUSE ESTIMATOR
@@ -131,11 +150,11 @@ export const GradientHouseProject: React.FC = () => {
           </div>
 
           <h2 className="font-pixel text-xl text-[#dda15e] uppercase tracking-wide">
-            Narrative Guide: Continuous Real Estate Estimator
+            Building a Real Estate House Price Estimator with Gradient Descent
           </h2>
 
           <p className="text-lg leading-relaxed text-[#c8ecd0] font-vt323">
-            In this continuous regression project blueprint, I will show you how gradient descent works under the hood to minimize prediction errors on real estate datasets. Rather than drawing boundary lines, the model fits a continuous plane over data coordinates.
+            Incredible work navigating the loss surfaces and learning rates in the Mountain visualizer! You&apos;ve mastered how gradient vectors guide parameters downhill to find the minimum error. Now, let&apos;s look at how this exact optimization technique is used to solve real-world continuous estimation problems. This is the core algorithm behind automated valuation engines used by platforms like Zillow, Redfin, and financial forecasting systems!
           </p>
         </div>
       </div>
