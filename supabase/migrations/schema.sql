@@ -136,36 +136,43 @@ end;
 $$ language plpgsql security definer;
 
 -- Profiles policies
+drop policy if exists "Manage own profile" on public.profiles;
 create policy "Manage own profile" on public.profiles
   for all using (public.current_clerk_user_id() = clerk_user_id)
   with check (public.current_clerk_user_id() = clerk_user_id);
 
 -- User Progress policies
+drop policy if exists "Manage own progress" on public.user_progress;
 create policy "Manage own progress" on public.user_progress
   for all using (public.current_clerk_user_id() = clerk_user_id)
   with check (public.current_clerk_user_id() = clerk_user_id);
 
 -- Daily Activity policies
+drop policy if exists "Manage own daily activity" on public.daily_activity;
 create policy "Manage own daily activity" on public.daily_activity
   for all using (public.current_clerk_user_id() = clerk_user_id)
   with check (public.current_clerk_user_id() = clerk_user_id);
 
 -- Learning Sessions policies
+drop policy if exists "Manage own learning sessions" on public.learning_sessions;
 create policy "Manage own learning sessions" on public.learning_sessions
   for all using (public.current_clerk_user_id() = clerk_user_id)
   with check (public.current_clerk_user_id() = clerk_user_id);
 
 -- Module Progress policies
+drop policy if exists "Manage own module progress" on public.module_progress;
 create policy "Manage own module progress" on public.module_progress
   for all using (public.current_clerk_user_id() = clerk_user_id)
   with check (public.current_clerk_user_id() = clerk_user_id);
 
 -- Achievements policies
+drop policy if exists "Manage own achievements" on public.achievements;
 create policy "Manage own achievements" on public.achievements
   for all using (public.current_clerk_user_id() = clerk_user_id)
   with check (public.current_clerk_user_id() = clerk_user_id);
 
 -- Badges policies
+drop policy if exists "Manage own badges" on public.badges;
 create policy "Manage own badges" on public.badges
   for all using (public.current_clerk_user_id() = clerk_user_id)
   with check (public.current_clerk_user_id() = clerk_user_id);
