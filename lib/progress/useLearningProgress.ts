@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useUser } from "@clerk/nextjs";
 import { ProgressSummary, LearningMode, XP_RATES } from "./types";
 import {
@@ -13,6 +13,7 @@ import {
 export function useLearningProgress() {
   const { user, isLoaded, isSignedIn } = useUser();
   const userId = user?.id || "guest_user";
+  const initializedRef = useRef<string | null>(null);
 
   const [summary, setSummary] = useState<ProgressSummary>(() => ({
     profile: null,
@@ -36,13 +37,16 @@ export function useLearningProgress() {
     setLoading(true);
     try {
       if (isSignedIn && user?.id) {
-        await ensureUserProfileAndProgress(user.id, {
-          username: user.username || user.firstName || "Learner",
-          email: user.primaryEmailAddress?.emailAddress || null,
-          avatarUrl: user.imageUrl || null,
-          firstName: user.firstName || "",
-          lastName: user.lastName || "",
-        });
+        if (initializedRef.current !== user.id) {
+          initializedRef.current = user.id;
+          await ensureUserProfileAndProgress(user.id, {
+            username: user.username || user.firstName || "Learner",
+            email: user.primaryEmailAddress?.emailAddress || null,
+            avatarUrl: user.imageUrl || null,
+            firstName: user.firstName || "",
+            lastName: user.lastName || "",
+          });
+        }
       }
 
       const data = await fetchUserProgressSummary(userId);

@@ -11,23 +11,22 @@ export const isSupabaseConfigured = Boolean(
     !process.env.NEXT_PUBLIC_SUPABASE_URL.includes("placeholder")
 );
 
-// Singleton Supabase client instance using public anon key
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+/**
+ * SINGLETON Supabase browser client instance.
+ * Disabling session persistence avoids duplicate GoTrueClient instances in browser context.
+ */
+export const supabase: SupabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: false,
+    autoRefreshToken: false,
+    detectSessionInUrl: false,
+  },
+});
 
 /**
- * Returns a Supabase client configured with the Clerk User ID header if provided.
- * Does NOT require or request any Clerk JWT templates or Supabase Auth tokens.
+ * Returns the exact SINGLETON browser client instance.
+ * Never creates new GoTrueClient instances.
  */
-export function getSupabaseClient(clerkUserId?: string | null): SupabaseClient {
-  if (!clerkUserId || clerkUserId === "guest_user") {
-    return supabase;
-  }
-
-  return createClient(supabaseUrl, supabaseAnonKey, {
-    global: {
-      headers: {
-        "x-clerk-user-id": clerkUserId,
-      },
-    },
-  });
+export function getSupabaseClient(): SupabaseClient {
+  return supabase;
 }
