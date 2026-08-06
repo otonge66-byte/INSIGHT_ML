@@ -3,53 +3,105 @@
 import React, { useState } from "react";
 import { ByteSprite } from "@/components/sprites/ByteSprite";
 
-const FEATURES = [
-  { id: "urgent", name: "Contains 'URGENT' or 'FREE'", weight: 1.8, desc: "High spam correlation keyword" },
-  { id: "unknown", name: "Sender Email Unknown / Suspicious", weight: 1.4, desc: "Domain unverified" },
-  { id: "links", name: "Includes External Links (> 3)", weight: 1.2, desc: "Potential phishing attempt" },
-  { id: "lateTime", name: "Sent between 1:00 AM - 4:00 AM", weight: 0.9, desc: "Unusual batch send time" },
-  { id: "attachment", name: "Includes Executable Attachment", weight: 1.5, desc: "High security risk (.exe, .zip)" },
-];
-
-const PRESET_EMAILS = [
-  {
-    name: "Suspicious Offer Email",
-    features: { urgent: true, unknown: true, links: true, lateTime: true, attachment: false },
-  },
-  {
-    name: "Teammate Code Review",
-    features: { urgent: false, unknown: false, links: true, lateTime: false, attachment: false },
-  },
-  {
-    name: "Midnight Lottery Claims",
-    features: { urgent: true, unknown: true, links: true, lateTime: true, attachment: true },
-  },
-];
-
 export const PerceptronSpamProject: React.FC = () => {
-  const [activeFeatures, setActiveFeatures] = useState<Record<string, boolean>>({
-    urgent: true,
-    unknown: true,
-    links: true,
-    lateTime: false,
-    attachment: false,
-  });
+  const [activeStep, setActiveStep] = useState<number>(0);
 
-  const bias = -2.5;
+  const STEPS = [
+    {
+      title: "1. The Binary Feature Vector",
+      content: (
+        <div className="space-y-4">
+          <p className="text-lg leading-relaxed text-[#c8ecd0]">
+            In text classification, we convert unstructured emails into structured numbers. We define a list of spam-correlated indicators. If an indicator is present in the email, the input neuron activates to <code className="text-[#dda15e] bg-[#1e140e] px-1.5 py-0.5 border border-[#382219]">1</code>; otherwise, it stays <code className="text-[#a3b18a] bg-[#1e140e] px-1.5 py-0.5 border border-[#382219]">0</code>.
+          </p>
+          <div className="bg-[#1e140e] border-2 border-[#382219] p-4 font-vt323 text-lg space-y-2">
+            <div className="text-[#dda15e] font-pixel text-[10px] mb-2">💡 FEATURE MATRIX DEFINITION</div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm md:text-base">
+              <div><span className="text-[#dda15e] font-bold">x₁:</span> Subject contains &quot;URGENT&quot; or &quot;FREE&quot;</div>
+              <div><span className="text-[#dda15e] font-bold">x₂:</span> Sender email domain is unknown / unverified</div>
+              <div><span className="text-[#dda15e] font-bold">x₃:</span> Body contains more than 3 external links</div>
+              <div><span className="text-[#dda15e] font-bold">x₄:</span> Sent at unusual hours (1:00 AM - 4:00 AM)</div>
+              <div><span className="text-[#dda15e] font-bold">x₅:</span> Includes suspicious file attachment (.exe, .zip)</div>
+            </div>
+          </div>
+          <p className="text-base text-[#a3b18a]">
+            An incoming email is represented as an array of 5 binary elements: e.g., <code className="text-[#dda15e] bg-[#1e140e] px-1.5">[1, 1, 0, 0, 1]</code>.
+          </p>
+        </div>
+      ),
+    },
+    {
+      title: "2. Weighted Summation & Bias",
+      content: (
+        <div className="space-y-4">
+          <p className="text-lg leading-relaxed text-[#c8ecd0]">
+            Each feature is assigned a weight based on its relative spam hazard. Urgency keywords might be weighted <code className="text-[#dda15e] bg-[#1e140e] px-1.5">1.8</code>, while executable attachments get <code className="text-[#dda15e] bg-[#1e140e] px-1.5">2.5</code>.
+          </p>
+          <div className="bg-[#1e140e] border-2 border-[#382219] p-4 font-vt323 text-lg space-y-2">
+            <div className="text-[#dda15e] font-pixel text-[10px] mb-2">⚖️ PERCEPTRON DECISION FORMULA</div>
+            <div className="text-center py-2 bg-[#120c08] border border-[#2e1d14] rounded">
+              <code className="text-xl text-[#fefae0] font-bold">z = w₁·x₁ + w₂·x₂ + w₃·x₃ + w₄·x₄ + w₅·x₅ + bias</code>
+            </div>
+            <p className="text-[#a3b18a] text-sm mt-2">
+              The <code className="text-[#dda15e]">bias</code> (e.g., <code className="text-[#dda15e]">-2.5</code>) acts as our threshold offset. If the sum of active feature weights exceeds the absolute value of the bias, the email is flagged as SPAM.
+            </p>
+          </div>
+          <p className="text-base text-[#a3b18a]">
+            Example: If an email is <code className="text-[#dda15e]">[1, 1, 0, 0, 0]</code>, the sum is <code className="text-[#dda15e]">1.8 + 1.4 - 2.5 = 0.7</code>. Since <code className="text-[#dda15e]">0.7 &gt;= 0</code>, it classifies as SPAM.
+          </p>
+        </div>
+      ),
+    },
+    {
+      title: "3. Standalone Python Implementation",
+      content: (
+        <div className="space-y-4">
+          <p className="text-lg leading-relaxed text-[#c8ecd0]">
+            Here is how you can write a lightweight Perceptron classifier in pure Python without external dependencies.
+          </p>
+          <div className="bg-[#1e140e] border-2 border-[#382219] p-3 font-mono text-xs overflow-x-auto text-[#a3b18a]">
+            <pre>{`class PerceptronSpamFilter:
+    def __init__(self, num_features=5):
+        # Initialize weights and bias to small random numbers or zeros
+        self.weights = [1.8, 1.4, 1.2, 0.9, 2.5]
+        self.bias = -2.5
 
-  const score = FEATURES.reduce((acc, feat) => {
-    return acc + (activeFeatures[feat.id] ? feat.weight : 0);
-  }, bias);
+    def predict(self, x):
+        # Calculate dot product: sum(w_i * x_i) + bias
+        z = sum(w * xi for w, xi in zip(self.weights, x)) + self.bias
+        # Step function activation
+        return 1 if z >= 0 else 0
 
-  const isSpam = score >= 0;
-
-  const toggleFeature = (id: string) => {
-    setActiveFeatures((prev) => ({ ...prev, [id]: !prev[id] }));
-  };
-
-  const applyPreset = (presetFeatures: Record<string, boolean>) => {
-    setActiveFeatures(presetFeatures);
-  };
+# Sample run: urgent subject (1) & unknown sender (1)
+email_vector = [1, 1, 0, 0, 0]
+filter = PerceptronSpamFilter()
+is_spam = filter.predict(email_vector)
+print("Classification:", "SPAM" if is_spam == 1 else "INBOX SAFE")
+# Output: CLASSIFICATION: SPAM`}</pre>
+          </div>
+        </div>
+      ),
+    },
+    {
+      title: "4. Training Loop Feedback",
+      content: (
+        <div className="space-y-4">
+          <p className="text-lg leading-relaxed text-[#c8ecd0]">
+            When the filter misclassifies an email, we adjust the weights and bias. If it missed a spam email, we increase weights for active features. If it flagged a safe email, we decrease those weights.
+          </p>
+          <div className="bg-[#1e140e] border-2 border-[#382219] p-4 font-vt323 text-lg space-y-2">
+            <div className="text-[#dda15e] font-pixel text-[10px] mb-2">🔄 WEIGHT UPDATE RULE</div>
+            <div className="text-center py-2 bg-[#120c08] border border-[#2e1d14] rounded">
+              <code className="text-xl text-[#fefae0] font-bold">w_i ← w_i + η · (target - prediction) · x_i</code>
+            </div>
+            <p className="text-[#a3b18a] text-sm mt-2">
+              Where <code className="text-[#dda15e]">η</code> (eta) is the learning rate. This feedback loop runs iteratively over training records until classification matches historical data.
+            </p>
+          </div>
+        </div>
+      ),
+    },
+  ];
 
   return (
     <div className="space-y-6 text-[#fefae0]">
@@ -63,165 +115,49 @@ export const PerceptronSpamProject: React.FC = () => {
         <div className="space-y-2 flex-1">
           <div className="flex items-center gap-2">
             <span className="font-pixel text-[9px] bg-[#386641] text-[#fefae0] px-2 py-0.5 border border-[#1b3521] uppercase">
-              APPLIED PROJECT 01
+              APPLIED PROJECT BLUEPRINT
             </span>
             <span className="font-pixel text-[8px] text-[#8fc99a]">
-              BAG-OF-WORDS CLASSIFIER
+              PERCEPTRON EMAIL CLASSIFIER
             </span>
           </div>
 
           <h2 className="font-pixel text-xl text-[#7ecb8a] uppercase tracking-wide">
-            Rule-Based Email Spam &amp; Priority Classifier
+            Narrative Guide: Rule-Based Email Spam Filter
           </h2>
 
           <p className="text-lg leading-relaxed text-[#c8ecd0] font-vt323">
-            Ever wondered how email services filter out spam before it reaches your inbox? Under the hood, early spam filters were built with a single <strong>Perceptron neuron</strong>! By treating email traits as binary inputs (0 or 1) and assigning weighted scores to risky signals, the perceptron calculates a dot-product score to decide: <strong>SPAM</strong> or <strong>INBOX</strong>.
+            Welcome to the Applied Blueprint module! Here, I will explain in detail how you can implement a single-neuron spam filter locally on your machine. We treat email features as binary inputs, calculate a weighted linear summation, and apply a step-function threshold to classify emails as spam or safe.
           </p>
-
-          <div className="text-base text-[#a3b18a] bg-[#0d150e] p-2 border border-[#2a5c30] font-vt323">
-            💡 <strong>Project Concept:</strong> Inspired by classic Bag-of-Words text classification. Learn how feature weights combine linear decisions!
-          </div>
         </div>
       </div>
 
-      {/* Interactive Perceptron Spam Classifier Grid */}
+      {/* Blueprint Tabs & Content */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left Column: Feature Toggles & Presets */}
-        <div className="lg:col-span-7 bg-[#281b12] border-4 border-[#382219] p-5 shadow-[6px_6px_0px_#0f0a07] space-y-4">
-          <div className="flex items-center justify-between border-b-2 border-[#382219] pb-3">
-            <div>
-              <h3 className="font-pixel text-xs text-[#dda15e] uppercase">
-                1. Toggle Custom Email Traits
-              </h3>
-              <p className="text-sm text-[#a3b18a] font-vt323">
-                Select features present in the incoming email to observe weight summation.
-              </p>
-            </div>
-            <span className="font-pixel text-[8px] text-[#dda15e] bg-[#1e140e] px-2 py-1 border border-[#5c3d2e]">
-              5 INPUT NEURONS
-            </span>
-          </div>
-
-          {/* Feature List Toggles */}
-          <div className="space-y-2">
-            {FEATURES.map((feat) => {
-              const active = activeFeatures[feat.id];
-              return (
-                <button
-                  key={feat.id}
-                  onClick={() => toggleFeature(feat.id)}
-                  className={`w-full text-left p-3 border-2 transition-all flex items-center justify-between cursor-pointer ${
-                    active
-                      ? "bg-[#382219] border-[#dda15e] text-[#fefae0] shadow-[2px_2px_0px_#0f0a07]"
-                      : "bg-[#18110b] border-[#2c1e15] text-[#8fc99a] hover:border-[#5c3d2e]"
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <span className={`w-4 h-4 flex items-center justify-center font-pixel text-[10px] border ${
-                      active ? "bg-[#dda15e] text-[#1e140e] border-[#dda15e]" : "bg-[#120a06] border-[#382219]"
-                    }`}>
-                      {active ? "✓" : ""}
-                    </span>
-                    <div>
-                      <p className="font-vt323 text-lg font-bold leading-tight">{feat.name}</p>
-                      <p className="font-vt323 text-xs text-[#a3b18a]">{feat.desc}</p>
-                    </div>
-                  </div>
-
-                  <span className="font-mono text-sm font-bold text-[#dda15e] bg-[#120a06] px-2 py-0.5 border border-[#382219]">
-                    +{feat.weight.toFixed(1)} w
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Sample Presets */}
-          <div className="pt-2 border-t-2 border-[#382219] space-y-2">
-            <span className="font-pixel text-[8px] text-[#a3b18a] uppercase block">
-              Load Preset Email Examples:
-            </span>
-            <div className="flex gap-2 flex-wrap">
-              {PRESET_EMAILS.map((p) => (
-                <button
-                  key={p.name}
-                  onClick={() => applyPreset(p.features)}
-                  className="bg-[#18110b] hover:bg-[#382219] text-[#dda15e] border border-[#5c3d2e] px-3 py-1 font-pixel text-[9px] uppercase transition-colors cursor-pointer"
-                >
-                  ✉️ {p.name}
-                </button>
-              ))}
-            </div>
-          </div>
+        {/* Left Column: Tab list */}
+        <div className="lg:col-span-4 space-y-2">
+          {STEPS.map((step, idx) => (
+            <button
+              key={idx}
+              onClick={() => setActiveStep(idx)}
+              className={`w-full text-left font-pixel text-[11px] uppercase p-4 border-4 transition-all ${
+                activeStep === idx
+                  ? "bg-[#386641] text-[#fefae0] border-[#7ecb8a] shadow-[4px_4px_0px_#0f0a07]"
+                  : "bg-[#281b12] text-[#a3b18a] border-[#382219] hover:bg-[#342318]"
+              }`}
+            >
+              {step.title}
+            </button>
+          ))}
         </div>
 
-        {/* Right Column: Live Decision & Feature Weight Bar Chart */}
-        <div className="lg:col-span-5 bg-[#281b12] border-4 border-[#382219] p-5 shadow-[6px_6px_0px_#0f0a07] space-y-5 flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between border-b-2 border-[#382219] pb-3 mb-4">
-              <h3 className="font-pixel text-xs text-[#dda15e] uppercase">
-                2. Perceptron Decision Output
-              </h3>
-              <span className="font-pixel text-[8px] text-[#a3b18a]">
-                BIAS = {bias.toFixed(1)}
-              </span>
-            </div>
-
-            {/* Decision Badge */}
-            <div className={`p-5 border-4 text-center shadow-[4px_4px_0px_#0f0a07] transition-all ${
-              isSpam
-                ? "bg-[#3d1214] border-[#bc4749] text-[#f87171]"
-                : "bg-[#0d150e] border-[#386641] text-[#7ecb8a]"
-            }`}>
-              <span className="font-pixel text-[10px] uppercase tracking-widest block mb-1">
-                CLASSIFICATION RESULT
-              </span>
-              <p className="font-pixel text-2xl uppercase tracking-wider font-bold">
-                {isSpam ? "🚨 SPAM FOLDER" : "📥 INBOX SAFE"}
-              </p>
-              <p className="font-vt323 text-lg mt-1 text-[#fefae0]">
-                Dot Product Score: <strong>{score >= 0 ? `+${score.toFixed(2)}` : score.toFixed(2)}</strong> (Threshold: 0.0)
-              </p>
-            </div>
-          </div>
-
-          {/* Feature Weight Contributions Bar Chart */}
-          <div className="space-y-3 bg-[#18110b] p-4 border-2 border-[#382219]">
-            <span className="font-pixel text-[8px] text-[#dda15e] uppercase block">
-              Feature Weight Breakdown (Dot-Product Contribution)
-            </span>
-
-            <div className="space-y-2 font-vt323 text-sm">
-              {FEATURES.map((f) => {
-                const active = activeFeatures[f.id];
-                const widthPct = Math.min(100, Math.round((f.weight / 2.0) * 100));
-                return (
-                  <div key={f.id} className="space-y-1">
-                    <div className="flex justify-between text-xs">
-                      <span className={active ? "text-[#fefae0] font-bold" : "text-[#5c3d2e]"}>
-                        {f.name.split(" ")[0]} ({active ? `+${f.weight}` : "0.0"})
-                      </span>
-                      <span className={active ? "text-[#7ecb8a]" : "text-[#5c3d2e]"}>
-                        {active ? "ACTIVE" : "OFF"}
-                      </span>
-                    </div>
-                    <div className="w-full bg-[#0f0a07] h-3 border border-[#382219]">
-                      <div
-                        className={`h-full transition-all duration-200 ${
-                          active ? "bg-[#dda15e]" : "bg-[#382219]/30"
-                        }`}
-                        style={{ width: active ? `${widthPct}%` : "0%" }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Encouraging closing narrative */}
-          <div className="bg-[#120a06] p-3 border border-[#382219] text-base text-[#a3b18a] font-vt323 leading-tight">
-            💬 <strong>BYTE says:</strong> &ldquo;Notice how each feature acts like a weight vector! Adding new features shifts the score linearly. Give it a shot and see how different combinations trigger the spam threshold!&rdquo;
+        {/* Right Column: Step details */}
+        <div className="lg:col-span-8 bg-[#281b12] border-4 border-[#382219] p-6 shadow-[6px_6px_0px_#0f0a07] min-h-[300px]">
+          <h3 className="font-pixel text-sm text-[#dda15e] border-b-2 border-[#382219] pb-3 mb-4 uppercase">
+            {STEPS[activeStep].title}
+          </h3>
+          <div className="font-vt323 text-lg leading-relaxed text-[#a3b18a]">
+            {STEPS[activeStep].content}
           </div>
         </div>
       </div>

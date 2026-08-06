@@ -340,7 +340,7 @@ export default function GradientDescentPlayground() {
             {/* Mode selector quick tabs */}
             <div className="flex items-center gap-1.5 ml-2">
               <button
-                onClick={() => setAppMode("sandbox")}
+                onClick={enterSandboxMode}
                 className={`px-2 py-1 font-pixel text-[9px] uppercase border ${
                   appMode === "sandbox" ? "bg-[#382219] text-[#dda15e] border-[#dda15e]" : "text-[#a3b18a] border-[#382219]"
                 }`}
@@ -348,12 +348,28 @@ export default function GradientDescentPlayground() {
                 🔬 Sandbox
               </button>
               <button
-                onClick={() => setAppMode("project")}
+                onClick={enterStoryMode}
                 className={`px-2 py-1 font-pixel text-[9px] uppercase border ${
-                  appMode === "project" ? "bg-[#dda15e] text-[#1e140e] border-[#7a5225]" : "text-[#dda15e] border-[#7a5225]"
+                  appMode === "story" ? "bg-[#1b2a22] text-[#7ecb8a] border-[#386641]" : "text-[#a3b18a] border-[#382219]"
                 }`}
               >
-                🛠️ Apply It
+                📖 Story
+              </button>
+              <button
+                onClick={enterChallengeMode}
+                className={`px-2 py-1 font-pixel text-[9px] uppercase border ${
+                  appMode === "challenge" ? "bg-[#351515] text-[#ff6b6b] border-[#bc4749]" : "text-[#a3b18a] border-[#382219]"
+                }`}
+              >
+                🏆 Challenge
+              </button>
+              <button
+                onClick={() => setAppMode("project")}
+                className={`px-2 py-1 font-pixel text-[9px] uppercase border ${
+                  appMode === "project" ? "bg-[#386641] text-[#fefae0] border-[#7ecb8a]" : "text-[#7ecb8a] border-[#386641]"
+                }`}
+              >
+                🛠️ Applied Project
               </button>
             </div>
           </div>

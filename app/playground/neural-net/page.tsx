@@ -466,20 +466,20 @@ export default function NeuralNetPlayground() {
             <p className="text-[#a3b18a] text-xl">Choose your experience:</p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 w-full">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
             {/* Story Mode card */}
             <button
               onClick={enterStoryMode}
-              className="group bg-[#281b12] border-4 border-[#386641] shadow-[6px_6px_0px_0px_#0f0a07] p-6 text-left flex flex-col gap-3 hover:bg-[#2e2214] hover:-translate-y-1 transition-all active:translate-y-0 active:shadow-[2px_2px_0px_0px_#0f0a07]"
+              className="group bg-[#281b12] border-4 border-[#386641] shadow-[6px_6px_0px_0px_#0f0a07] p-5 text-left flex flex-col gap-3 hover:bg-[#2e2214] hover:-translate-y-1 transition-all active:translate-y-0 active:shadow-[2px_2px_0px_0px_#0f0a07]"
             >
               <div className="text-4xl">📖</div>
               <div>
-                <h2 className="font-pixel text-[12px] text-[#dda15e] uppercase mb-2">Story Mode</h2>
-                <p className="text-[#a3b18a] text-lg leading-snug">
+                <h2 className="font-pixel text-[12px] text-[#dda15e] uppercase mb-1">Story Mode</h2>
+                <p className="text-[#a3b18a] text-base leading-snug">
                   Guided walkthrough with BYTE. Discover why XOR needs hidden layers.
                 </p>
               </div>
-              <span className="font-pixel text-[10px] text-[#386641] border border-[#386641] px-2 py-1 self-start">
+              <span className="font-pixel text-[9px] text-[#386641] border border-[#386641] px-2 py-1 self-start mt-auto">
                 ▶ START TUTORIAL
               </span>
             </button>
@@ -487,33 +487,50 @@ export default function NeuralNetPlayground() {
             {/* Challenge Mode card */}
             <button
               onClick={enterChallengeMode}
-              className="group bg-[#281b12] border-4 border-[#dda15e] shadow-[6px_6px_0px_0px_#0f0a07] p-6 text-left flex flex-col gap-3 hover:bg-[#2e2214] hover:-translate-y-1 transition-all active:translate-y-0 active:shadow-[2px_2px_0px_0px_#0f0a07]"
+              className="group bg-[#281b12] border-4 border-[#dda15e] shadow-[6px_6px_0px_0px_#0f0a07] p-5 text-left flex flex-col gap-3 hover:bg-[#2e2214] hover:-translate-y-1 transition-all active:translate-y-0 active:shadow-[2px_2px_0px_0px_#0f0a07]"
             >
               <div className="text-4xl">🏆</div>
               <div>
-                <h2 className="font-pixel text-[12px] text-[#dda15e] uppercase mb-2">Challenge Mode</h2>
-                <p className="text-[#a3b18a] text-lg leading-snug">
+                <h2 className="font-pixel text-[12px] text-[#dda15e] uppercase mb-1">Challenge Mode</h2>
+                <p className="text-[#a3b18a] text-base leading-snug">
                   &quot;{neuralNetChallenge.title}&quot; — {neuralNetChallenge.goalSummary}
                 </p>
               </div>
-              <span className="font-pixel text-[10px] text-[#dda15e] border border-[#dda15e] px-2 py-1 self-start">
+              <span className="font-pixel text-[9px] text-[#dda15e] border border-[#dda15e] px-2 py-1 self-start mt-auto">
                 ▶ START CHALLENGE
+              </span>
+            </button>
+
+            {/* Sandbox Mode card */}
+            <button
+              onClick={enterSandboxMode}
+              className="group bg-[#281b12] border-4 border-[#382219] shadow-[6px_6px_0px_0px_#0f0a07] p-5 text-left flex flex-col gap-3 hover:bg-[#2e2214] hover:-translate-y-1 transition-all active:translate-y-0 active:shadow-[2px_2px_0px_0px_#0f0a07]"
+            >
+              <div className="text-4xl">🔬</div>
+              <div>
+                <h2 className="font-pixel text-[12px] text-[#dda15e] uppercase mb-1">Sandbox Mode</h2>
+                <p className="text-[#a3b18a] text-base leading-snug">
+                  Jump straight in and experiment freely with neurons, rates, and layers.
+                </p>
+              </div>
+              <span className="font-pixel text-[9px] text-[#a3b18a] border border-[#382219] px-2 py-1 self-start mt-auto">
+                ▶ FREE EXPLORE
               </span>
             </button>
 
             {/* Applied Project Mode card */}
             <button
               onClick={() => setAppMode("project")}
-              className="group bg-[#281b12] border-4 border-[#bc4749] shadow-[6px_6px_0px_0px_#0f0a07] p-6 text-left flex flex-col gap-3 hover:bg-[#2e1a14] hover:-translate-y-1 transition-all active:translate-y-0 active:shadow-[2px_2px_0px_0px_#0f0a07]"
+              className="group bg-[#281b12] border-4 border-[#bc4749] shadow-[6px_6px_0px_0px_#0f0a07] p-5 text-left flex flex-col gap-3 hover:bg-[#2e1a14] hover:-translate-y-1 transition-all active:translate-y-0 active:shadow-[2px_2px_0px_0px_#0f0a07]"
             >
               <div className="text-4xl">🛠️</div>
               <div>
-                <h2 className="font-pixel text-[12px] text-[#bc4749] uppercase mb-2">Applied Project</h2>
-                <p className="text-[#a3b18a] text-lg leading-snug">
-                  16×16 Hand-Drawn Digit &amp; Shape Recognizer (3Blue1Brown Model).
+                <h2 className="font-pixel text-[12px] text-[#bc4749] uppercase mb-1">Applied Project</h2>
+                <p className="text-[#a3b18a] text-base leading-snug">
+                  16×16 Hand-Drawn Digit &amp; Shape Recognizer Blueprint.
                 </p>
               </div>
-              <span className="font-pixel text-[10px] text-[#bc4749] border border-[#6b2123] px-2 py-1 self-start">
+              <span className="font-pixel text-[9px] text-[#bc4749] border border-[#6b2123] px-2 py-1 self-start mt-auto">
                 ▶ BUILD CAPSTONE
               </span>
             </button>
@@ -790,10 +807,10 @@ export default function NeuralNetPlayground() {
               </button>
             )}
 
-            {/* Quick Mode tabs */}
+            {/* Mode selector quick tabs */}
             <div className="flex items-center gap-1.5 ml-2">
               <button
-                onClick={() => setAppMode("sandbox")}
+                onClick={enterSandboxMode}
                 className={`px-2 py-1 font-pixel text-[9px] uppercase border ${
                   appMode === "sandbox" ? "bg-[#382219] text-[#dda15e] border-[#dda15e]" : "text-[#a3b18a] border-[#382219]"
                 }`}
@@ -801,12 +818,28 @@ export default function NeuralNetPlayground() {
                 🔬 Sandbox
               </button>
               <button
-                onClick={() => setAppMode("project")}
+                onClick={enterStoryMode}
                 className={`px-2 py-1 font-pixel text-[9px] uppercase border ${
-                  appMode === "project" ? "bg-[#bc4749] text-[#fefae0] border-[#6b2123]" : "text-[#bc4749] border-[#6b2123]"
+                  appMode === "story" ? "bg-[#1b2a22] text-[#7ecb8a] border-[#386641]" : "text-[#a3b18a] border-[#382219]"
                 }`}
               >
-                🛠️ Apply It
+                📖 Story
+              </button>
+              <button
+                onClick={enterChallengeMode}
+                className={`px-2 py-1 font-pixel text-[9px] uppercase border ${
+                  appMode === "challenge" ? "bg-[#351515] text-[#ff6b6b] border-[#bc4749]" : "text-[#a3b18a] border-[#382219]"
+                }`}
+              >
+                🏆 Challenge
+              </button>
+              <button
+                onClick={() => setAppMode("project")}
+                className={`px-2 py-1 font-pixel text-[9px] uppercase border ${
+                  appMode === "project" ? "bg-[#386641] text-[#fefae0] border-[#7ecb8a]" : "text-[#7ecb8a] border-[#386641]"
+                }`}
+              >
+                🛠️ Applied Project
               </button>
             </div>
           </div>
