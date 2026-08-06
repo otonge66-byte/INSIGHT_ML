@@ -5,107 +5,94 @@ import Link from "next/link";
 import { CozySidebar } from "@/components/ui/CozySidebar";
 import { CozyHeader } from "@/components/ui/CozyHeader";
 import { RetroButton } from "@/components/ui/RetroButton";
+import { ByteSprite } from "@/components/sprites/ByteSprite";
+
+const TERMINAL_MESSAGES = [
+  "Initializing Neural Network...",
+  "Loading Dataset...",
+  "Building Decision Boundary...",
+  "Training Model...",
+  "Ready.",
+];
 
 export default function CozyIslandDashboard() {
-  // ── Auth & Profile State ──
-  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
-  const [userName, setUserName] = useState<string>("Explorer Alex");
-  const [userAvatar, setUserAvatar] = useState<string>("🤠");
-  const [loginInput, setLoginInput] = useState<string>("");
-  const [selectedAvatarInput, setSelectedAvatarInput] = useState<string>("🤠");
+  // ── Terminal typewriter state ──
+  const [msgIndex, setMsgIndex] = useState(0);
+  const [charIndex, setCharIndex] = useState(0);
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  // ── Calendar Activity State ──
-  const [selectedDay, setSelectedDay] = useState<number>(20);
-  const [dayActivityMsg, setDayActivityMsg] = useState<string | null>(null);
-
-  // Load user profile from localStorage on mount
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem("insightml_user");
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed.name) {
-          setUserName(parsed.name);
-          setUserAvatar(parsed.avatar || "🤠");
-          setIsLoggedIn(true);
-        }
-      }
-    } catch (e) {}
-  }, []);
+    const currentFullMsg = TERMINAL_MESSAGES[msgIndex];
+    let timer: NodeJS.Timeout;
 
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    const finalName = loginInput.trim() || "Explorer Alex";
-    setUserName(finalName);
-    setUserAvatar(selectedAvatarInput);
-    setIsLoggedIn(true);
-    try {
-      localStorage.setItem(
-        "insightml_user",
-        JSON.stringify({ name: finalName, avatar: selectedAvatarInput })
-      );
-    } catch (e) {}
-  };
-
-  const handleLogout = () => {
-    setIsLoggedIn(false);
-    try {
-      localStorage.removeItem("insightml_user");
-    } catch (e) {}
-  };
-
-  // Mock activity logs for August 2026 calendar days
-  const ACTIVITY_LOGS: Record<number, string> = {
-    3: "Aug 3: Trained 12 Epochs in Perceptron Meadow!",
-    6: "Aug 6: Solved XOR Pattern in Neural Forest!",
-    9: "Aug 9: Navigated Bowl Loss Surface in Gradient Mountain!",
-    12: "Aug 12: Reached 98% Accuracy in Perceptron Classifier!",
-    15: "Aug 15: Added 4 Hidden Layer Nodes in Deep Neural Net!",
-    18: "Aug 18: Completed Speed Classifier Challenge!",
-    20: "Aug 20 (Today): Active session! 15 Epochs trained, 7-Day Streak active!",
-    21: "Aug 21: Planned Gradient Descent session",
-    24: "Aug 24: Scheduled XOR Deep Learning Review",
-    27: "Aug 27: Model Hyperparameter Tuning Day",
-    30: "Aug 30: End of Month Challenge Prep",
-  };
-
-  const handleDayClick = (day: number) => {
-    setSelectedDay(day);
-    if (ACTIVITY_LOGS[day]) {
-      setDayActivityMsg(ACTIVITY_LOGS[day]);
-    } else {
-      setDayActivityMsg(`Aug ${day}: Rest & theory study day`);
+    if (!isDeleting && charIndex < currentFullMsg.length) {
+      timer = setTimeout(() => setCharIndex((prev) => prev + 1), 60);
+    } else if (!isDeleting && charIndex === currentFullMsg.length) {
+      timer = setTimeout(() => setIsDeleting(true), 1600);
+    } else if (isDeleting && charIndex > 0) {
+      timer = setTimeout(() => setCharIndex((prev) => prev - 1), 30);
+    } else if (isDeleting && charIndex === 0) {
+      setIsDeleting(false);
+      setMsgIndex((prev) => (prev + 1) % TERMINAL_MESSAGES.length);
     }
-  };
+
+    return () => clearTimeout(timer);
+  }, [charIndex, isDeleting, msgIndex]);
+
+  const currentTypedText = TERMINAL_MESSAGES[msgIndex].substring(0, charIndex);
 
   const MODULE_ZONES = [
     {
       id: "perceptron",
-      title: "Perceptron Meadow",
+      title: "Perceptron Visualizer",
       icon: "⚡",
-      color: "bg-[#22302B]",
+      color: "#6FCF97",
       href: "/playground/perceptron",
-      desc: "Single-layer classifier & linear decision boundary visualizer.",
-      progress: "8/8 Tasks",
+      desc: "Learn how a single-layer perceptron separates data using a moving decision boundary.",
     },
     {
       id: "gradient-descent",
-      title: "Gradient Mountain",
+      title: "Gradient Descent",
       icon: "📉",
-      color: "bg-[#22302B]",
+      color: "#E9C46A",
       href: "/playground/gradient-descent",
-      desc: "Loss surface terrain, gradient step trajectories & learning rate tuning.",
-      progress: "5/5 Tasks",
+      desc: "Visualize optimization on a loss surface and understand how models learn.",
     },
     {
       id: "neural-net",
-      title: "Neural Forest",
+      title: "Neural Network",
       icon: "🧠",
-      color: "bg-[#22302B]",
+      color: "#D96C6C",
       href: "/playground/neural-net",
-      desc: "Deep learning, hidden layers, non-linear boundaries & XOR solver.",
-      progress: "3/5 Tasks",
+      desc: "Build hidden layers and explore nonlinear decision boundaries interactively.",
     },
+  ];
+
+  const HOW_IT_WORKS = [
+    {
+      title: "Story Mode",
+      icon: "📖",
+      desc: "Guided walkthrough with BYTE the AI professor explaining core concepts step by step.",
+    },
+    {
+      title: "Sandbox Mode",
+      icon: "🔬",
+      desc: "Full parameter control to experiment freely, adjust learning rates, and load custom datasets.",
+    },
+    {
+      title: "Challenge Mode",
+      icon: "🏆",
+      desc: "Solve targeted ML puzzles, reach accuracy goals, and earn star ratings by meeting target metrics.",
+    },
+  ];
+
+  const PLATFORM_GOALS = [
+    { label: "Visual Learning", desc: "Intuitive geometric representations of ML algorithms" },
+    { label: "Interactive Simulations", desc: "Real-time feedback with instant canvas updates" },
+    { label: "No Coding Required", desc: "Pure browser-based exploration with zero setup" },
+    { label: "Beginner Friendly", desc: "Step-by-step guidance tailored for all skill levels" },
+    { label: "Real-Time Visualization", desc: "Watch weights, gradients, and loss surfaces change live" },
+    { label: "Progress Tracking", desc: "Track completed modules, accuracy milestones, and streaks" },
   ];
 
   return (
@@ -117,293 +104,246 @@ export default function CozyIslandDashboard() {
       <main className="flex-1 flex flex-col min-w-0">
         {/* Top Header Bar */}
         <CozyHeader
-          title={isLoggedIn ? `Welcome back, ${userName}!` : "Welcome to InsightML!"}
-          subtitle="Here is an overview of your InsightML platform and active learning modules"
-          userName={isLoggedIn ? userName : "Guest"}
-          userAvatar={isLoggedIn ? userAvatar : "🔒"}
+          title="InsightML Control Center"
+          subtitle="Interactive Control Center for Machine Learning Visualizations"
+          userName="Guest"
+          userAvatar="🤖"
         />
 
-        {/* Main Dashboard Grid Layout */}
-        <div className="p-4 sm:p-6 lg:p-8 grid grid-cols-1 lg:grid-cols-3 gap-5 lg:gap-6 max-w-7xl mx-auto w-full items-start">
-          
-          {/* 1. OVERVIEW & LOGIN CARD (Left Side - Larger 2-Column Span) */}
-          <section className="lg:col-span-2 bg-[#2C3C35] hover:bg-[#33463E] border border-[#4E665B] rounded-2xl p-6 shadow-sm hover:-translate-y-0.5 hover:scale-[1.01] transition-all duration-200 flex flex-col justify-between relative overflow-hidden min-h-[480px]">
-            
-            {/* LOGGED-OUT STATE WITH LOGIN FORM */}
-            {!isLoggedIn ? (
-              <div className="flex flex-col justify-between h-full">
-                {/* Background preview muted */}
-                <div className="filter blur-xs opacity-20 pointer-events-none select-none">
-                  <div className="flex justify-between items-center mb-4">
-                    <h2 className="font-pixel text-xs font-bold text-[#EAF4EE]">OVERVIEW & SESSION</h2>
-                    <span className="text-xs bg-[#22302B] border border-[#4E665B] px-2 py-0.5 rounded text-[#8DA397]">Level 4</span>
-                  </div>
-                  <div className="p-4 bg-[#22302B] rounded-xl mb-4 text-center">
-                    <p className="font-pixel text-xs text-[#6FCF97]">PLATFORM RATING 4.5</p>
-                  </div>
-                  <div className="h-48 bg-[#182320] rounded-xl border border-[#4E665B]" />
-                </div>
+        {/* Dashboard Content Container */}
+        <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full space-y-6">
 
-                {/* Centered Login Setup Form */}
-                <div className="absolute inset-0 bg-[#22302B]/95 backdrop-blur-sm p-6 sm:p-8 flex flex-col justify-center items-center text-center z-20">
-                  <div className="w-12 h-12 rounded-full bg-[#2C3C35] text-[#6FCF97] flex items-center justify-center text-xl border border-[#4E665B] mb-3">
-                    🔒
-                  </div>
-                  <h3 className="font-pixel text-xs sm:text-sm font-bold text-[#EAF4EE] uppercase mb-1">
-                    Explorer Session Setup
-                  </h3>
-                  <p className="text-xs text-[#8DA397] mb-5 max-w-sm font-sans">
-                    Login or create your explorer profile to track live daily activity & training streaks.
-                  </p>
+          {/* ── SECTION 1: TWO-COLUMN HERO SECTION ───────────────────────── */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-6 items-stretch">
 
-                  <form onSubmit={handleLogin} className="w-full max-w-sm space-y-4 font-sans">
-                    {/* Avatar selection */}
-                    <div>
-                      <label className="text-xs text-[#C9D7CF] block mb-2 font-medium">
-                        Choose Your Explorer Avatar
-                      </label>
-                      <div className="flex justify-center gap-3 mb-1">
-                        {["🤠", "🦊", "🦝", "🦉", "🐻"].map((av) => (
-                          <button
-                            key={av}
-                            type="button"
-                            onClick={() => setSelectedAvatarInput(av)}
-                            className={`w-9 h-9 rounded-full text-lg flex items-center justify-center border transition-all ${
-                              selectedAvatarInput === av
-                                ? "bg-[#2C3C35] border-[#6FCF97] scale-105 shadow-sm"
-                                : "bg-[#182320] border-[#4E665B] hover:bg-[#2C3C35]"
-                            }`}
-                          >
-                            {av}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
+            {/* LEFT SIDE (70% - HERO TERMINAL CONSOLE) */}
+            <section className="lg:col-span-8 bg-[#2C3C35] hover:bg-[#33463E] border border-[#4E665B] rounded-2xl p-6 shadow-sm relative overflow-hidden transition-all duration-200 flex flex-col justify-between">
+              
+              {/* Soft CRT scanlines overlay */}
+              <div
+                className="absolute inset-0 pointer-events-none rounded-2xl opacity-10"
+                style={{
+                  backgroundImage: "linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.4) 50%)",
+                  backgroundSize: "100% 4px",
+                }}
+              />
 
-                    {/* Name input */}
-                    <div>
-                      <input
-                        type="text"
-                        placeholder="Enter Explorer Name..."
-                        value={loginInput}
-                        onChange={(e) => setLoginInput(e.target.value)}
-                        className="w-full bg-[#182320] border border-[#4E665B] rounded-xl px-4 py-2.5 text-sm font-sans text-[#EAF4EE] focus:outline-none focus:border-[#6FCF97] text-center"
-                      />
-                    </div>
-
-                    <RetroButton variant="primary" type="submit" className="w-full py-2.5">
-                      Login & Start Session
-                    </RetroButton>
-                  </form>
-                </div>
-              </div>
-            ) : (
-              /* LOGGED-IN EXPLORER STATE */
-              <div className="flex flex-col justify-between h-full space-y-4">
-                <div className="flex items-center justify-between pb-3 border-b border-[#4E665B]/60">
-                  <div className="flex items-center gap-3">
-                    <span className="text-2xl bg-[#22302B] p-2 rounded-xl border border-[#4E665B]">{userAvatar}</span>
-                    <div>
-                      <h2 className="font-pixel text-xs sm:text-sm font-bold uppercase text-[#EAF4EE]">
-                        {userName}
-                      </h2>
-                      <span className="text-xs text-[#8DA397]">Level 4 ML Scholar</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs bg-[#22302B] text-[#E9C46A] px-3 py-1 rounded-lg border border-[#4E665B] font-medium">
-                      🔥 7 Day Streak
-                    </span>
-                    <button
-                      onClick={handleLogout}
-                      className="text-xs bg-[#22302B] hover:bg-[#182320] text-[#D96C6C] px-2.5 py-1 rounded-lg border border-[#4E665B] transition-colors flex items-center gap-1 font-medium"
-                      title="Logout / Switch Profile"
-                    >
-                      🚪 Logout
-                    </button>
-                  </div>
-                </div>
-
-                {/* Rating & Stats bar */}
-                <div className="bg-[#22302B] p-3.5 rounded-xl border border-[#4E665B] flex items-center justify-between">
-                  <div>
-                    <p className="text-xs uppercase text-[#8DA397] font-medium">
-                      Platform Rating
-                    </p>
-                    <div className="flex items-center gap-1 mt-1 text-[#E9C46A] text-xs">
-                      <span>⭐️</span>
-                      <span>⭐️</span>
-                      <span>⭐️</span>
-                      <span>⭐️</span>
-                      <span className="opacity-40">⭐️</span>
-                      <span className="font-semibold text-xs text-[#EAF4EE] ml-1">4.5</span>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-xs uppercase text-[#8DA397] font-medium">Total Epochs</p>
-                    <p className="font-semibold text-sm text-[#6FCF97]">⚡ 142 Trained</p>
-                  </div>
-                </div>
-
-                {/* Interactive Live Activity Calendar Widget */}
-                <div className="bg-[#182320] p-4 rounded-xl border border-[#4E665B] flex-1 flex flex-col justify-between">
-                  <div className="flex items-center justify-between text-xs font-semibold text-[#EAF4EE] mb-3 px-1">
-                    <span>‹</span>
-                    <span>August 2026 (Live Activity Calendar)</span>
-                    <span>›</span>
-                  </div>
-                  <div className="grid grid-cols-7 gap-1.5 text-center font-mono text-xs mb-2">
-                    {["M", "T", "W", "T", "F", "S", "S"].map((d, i) => (
-                      <span key={i} className="text-[#8DA397] text-xs font-medium py-1">
-                        {d}
-                      </span>
-                    ))}
-                    {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => {
-                      const hasActivity = Boolean(ACTIVITY_LOGS[day]);
-                      const isSelected = day === selectedDay;
-
-                      return (
-                        <button
-                          key={day}
-                          onClick={() => handleDayClick(day)}
-                          className={`h-7 w-7 sm:h-8 sm:w-8 rounded-lg flex items-center justify-center text-xs transition-all relative mx-auto ${
-                            isSelected
-                              ? "bg-[#2C3C35] text-[#6FCF97] font-bold border border-[#6FCF97]"
-                              : hasActivity
-                              ? "bg-[#2C3C35]/60 text-[#A6D8B8] hover:bg-[#2C3C35]"
-                              : "hover:bg-[#22302B] text-[#8DA397]"
-                          }`}
-                          title={ACTIVITY_LOGS[day] || `Aug ${day}`}
-                        >
-                          {day}
-                          {hasActivity && !isSelected && (
-                            <span className="absolute bottom-0.5 w-1 h-1 bg-[#6FCF97] rounded-full" />
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  {/* Day activity details box */}
-                  {dayActivityMsg && (
-                    <div className="mt-2 bg-[#22302B] p-2.5 rounded-lg border border-[#4E665B] text-xs text-[#C9D7CF] italic font-sans leading-tight text-center">
-                      {dayActivityMsg}
-                    </div>
-                  )}
-                </div>
-
-                {/* Pro tip footer */}
-                <div className="pt-2 border-t border-[#4E665B]/60 flex items-center gap-2">
-                  <span className="text-sm">💡</span>
-                  <p className="text-xs text-[#8DA397] leading-tight">
-                    <span className="font-semibold text-[#EAF4EE]">Pro Tip:</span> Click calendar days to inspect daily training logs.
-                  </p>
-                </div>
-              </div>
-            )}
-          </section>
-
-          {/* RIGHT SIDE CONTAINER (Upper & Lower Stacked Cards) */}
-          <div className="lg:col-span-1 flex flex-col gap-5 lg:gap-6">
-            
-            {/* 2. Main Playground Map Card (Upper Side) */}
-            <section className="bg-[#2C3C35] hover:bg-[#33463E] border border-[#4E665B] rounded-2xl p-5 shadow-sm hover:-translate-y-0.5 hover:scale-[1.01] transition-all duration-200 flex flex-col justify-between">
               <div>
-                <div className="flex items-center justify-between mb-3 pb-2 border-b border-[#4E665B]/60">
-                  <div className="flex items-center gap-2">
-                    <span className="text-base">🗺️</span>
-                    <h2 className="font-pixel text-xs font-bold uppercase tracking-wider text-[#EAF4EE]">
-                      Main Playground
-                    </h2>
+                {/* Header Row: Mascot & Title */}
+                <div className="flex items-start gap-4 mb-4">
+                  <div className="w-16 h-16 rounded-xl bg-[#22302B] border border-[#4E665B] flex items-center justify-center shrink-0 p-1">
+                    <ByteSprite scale={3} />
                   </div>
-                  <span className="text-xs text-[#8DA397]">3 Modules</span>
+                  <div>
+                    <h1 className="font-pixel text-xl sm:text-2xl font-bold text-[#EAF4EE] tracking-wider uppercase">
+                      INSIGHTML
+                    </h1>
+                    <p className="font-sans text-xs sm:text-sm font-semibold text-[#6FCF97] mt-0.5">
+                      Learn Machine Learning Visually
+                    </p>
+                  </div>
                 </div>
 
-                <div className="space-y-2 mb-3">
-                  {MODULE_ZONES.map((zone) => (
-                    <Link
-                      key={zone.id}
-                      href={zone.href}
-                      className="flex items-center justify-between bg-[#22302B] hover:bg-[#182320] p-2.5 rounded-xl border border-[#4E665B] transition-colors group"
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <div
-                          className="w-8 h-8 rounded-lg bg-[#2C3C35] text-[#6FCF97] flex items-center justify-center text-base border border-[#4E665B]"
-                        >
-                          {zone.icon}
-                        </div>
-                        <div>
-                          <h3 className="font-pixel text-[11px] font-bold text-[#EAF4EE] group-hover:text-[#6FCF97] transition-colors">
-                            {zone.title}
-                          </h3>
-                          <p className="text-[11px] text-[#8DA397] leading-tight mt-0.5 font-sans">
-                            {zone.desc}
-                          </p>
-                        </div>
-                      </div>
-                      <span className="font-sans text-[10px] font-semibold bg-[#2C3C35] text-[#6FCF97] px-2 py-1 rounded-lg border border-[#4E665B] shrink-0">
-                        Launch
-                      </span>
-                    </Link>
-                  ))}
+                {/* Welcome Message */}
+                <div className="bg-[#22302B] border border-[#4E665B] p-4 rounded-xl mb-4 font-sans text-xs sm:text-sm text-[#C9D7CF] leading-relaxed">
+                  <p className="text-[#EAF4EE] font-medium mb-1">Welcome Explorer,</p>
+                  <p>
+                    Visualize Machine Learning algorithms step by step. Choose a module below to begin your journey.
+                  </p>
                 </div>
               </div>
 
-              <div className="mt-1 text-center">
-                <Link href="/playground/perceptron" className="inline-block w-full">
-                  <RetroButton variant="primary" className="w-full py-2">
-                    Open Perceptron Visualizer
-                  </RetroButton>
-                </Link>
+              {/* Animated Terminal Area */}
+              <div className="bg-[#182320] border border-[#4E665B] rounded-xl p-4 font-mono text-xs text-[#6FCF97] shadow-inner relative overflow-hidden">
+                <div className="flex items-center justify-between border-b border-[#4E665B]/60 pb-2 mb-2">
+                  <span className="font-pixel text-[9px] text-[#8DA397] uppercase">
+                    TERMINAL CONSOLE // SYSTEM LOG
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-[#6FCF97] animate-pulse" />
+                    <span className="text-[10px] text-[#8DA397]">ACTIVE</span>
+                  </div>
+                </div>
+                <div className="space-y-1 font-mono text-xs">
+                  <p className="text-[#8DA397]">&gt; SYSTEM_INIT: Ready.</p>
+                  <p className="text-[#6FCF97] flex items-center">
+                    &gt; {currentTypedText}
+                    <span className="inline-block w-2 h-4 bg-[#6FCF97] ml-1 animate-pulse" />
+                  </p>
+                </div>
               </div>
             </section>
 
-            {/* 3. Field Notes Card (Lower Side) */}
-            <section className="bg-[#2C3C35] hover:bg-[#33463E] border border-[#4E665B] rounded-2xl p-5 shadow-sm hover:-translate-y-0.5 hover:scale-[1.01] transition-all duration-200 flex flex-col justify-between">
+            {/* RIGHT SIDE (30% - SYSTEM STATUS PANEL WITH RADAR) */}
+            <section className="lg:col-span-4 bg-[#2C3C35] hover:bg-[#33463E] border border-[#4E665B] rounded-2xl p-5 shadow-sm transition-all duration-200 flex flex-col justify-between">
               <div>
-                <div className="flex items-center justify-between mb-3 pb-2 border-b border-[#4E665B]/60">
+                <div className="flex items-center justify-between pb-3 border-b border-[#4E665B]/60 mb-4">
                   <div className="flex items-center gap-2">
-                    <span className="text-base">📝</span>
-                    <h2 className="font-pixel text-xs font-bold uppercase tracking-wider text-[#EAF4EE]">
-                      Field Notes
+                    <span className="text-base">🖥️</span>
+                    <h2 className="font-pixel text-xs font-bold text-[#EAF4EE] uppercase tracking-wider">
+                      System Status
                     </h2>
                   </div>
-                  <span className="text-xs text-[#8DA397]">Docs</span>
+                  <span className="bg-[#182320] text-[#6FCF97] border border-[#4E665B] px-2 py-0.5 rounded text-[10px] font-mono font-bold">
+                    ONLINE
+                  </span>
                 </div>
 
-                <div className="space-y-2.5">
-                  {/* Note 1 */}
-                  <div className="bg-[#22302B] p-3 rounded-xl border border-[#4E665B]">
-                    <p className="font-pixel text-[10px] text-[#E9C46A] font-bold uppercase mb-1">
-                      Core Concepts
-                    </p>
-                    <ul className="text-xs text-[#C9D7CF] space-y-1 list-disc pl-3 font-sans">
-                      <li>Single-layer perceptrons classify linearly separable data.</li>
-                      <li>Hidden layers transform space to solve non-linear problems.</li>
-                    </ul>
-                  </div>
-
-                  {/* Note 2 */}
-                  <div className="bg-[#22302B] p-3 rounded-xl border border-[#4E665B]">
-                    <p className="font-pixel text-[10px] text-[#6FCF97] font-bold uppercase mb-1 flex items-center justify-between">
-                      <span>Model Optimization</span>
-                      <span>⚡</span>
-                    </p>
-                    <p className="text-xs text-[#C9D7CF] font-sans">
-                      Carefully select the learning rate—excessive step sizes cause divergence while tiny rates delay convergence.
-                    </p>
-                  </div>
+                {/* Animated SVG Radar */}
+                <div className="relative w-28 h-28 mx-auto my-2 flex items-center justify-center">
+                  <svg className="w-full h-full" viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="45" fill="none" stroke="#4E665B" strokeWidth="1" opacity="0.4" />
+                    <circle cx="50" cy="50" r="30" fill="none" stroke="#4E665B" strokeWidth="1" opacity="0.4" />
+                    <circle cx="50" cy="50" r="15" fill="none" stroke="#4E665B" strokeWidth="1" opacity="0.4" />
+                    <line x1="50" y1="5" x2="50" y2="95" stroke="#4E665B" strokeWidth="1" opacity="0.3" />
+                    <line x1="5" y1="50" x2="95" y2="50" stroke="#4E665B" strokeWidth="1" opacity="0.3" />
+                    <circle cx="50" cy="50" r="3" fill="#6FCF97" />
+                    <circle cx="65" cy="35" r="2.5" fill="#6FCF97" className="animate-ping" />
+                    <circle cx="65" cy="35" r="2" fill="#6FCF97" />
+                    <circle cx="32" cy="62" r="2" fill="#E9C46A" />
+                    <g className="origin-center animate-[spin_4s_linear_infinite]">
+                      <line x1="50" y1="50" x2="50" y2="5" stroke="#6FCF97" strokeWidth="1.5" />
+                      <polygon points="50,50 50,5 85,20" fill="url(#radar-sweep)" opacity="0.35" />
+                    </g>
+                    <defs>
+                      <radialGradient id="radar-sweep" cx="50%" cy="50%" r="50%">
+                        <stop offset="0%" stopColor="#6FCF97" stopOpacity="0.6" />
+                        <stop offset="100%" stopColor="#6FCF97" stopOpacity="0" />
+                      </radialGradient>
+                    </defs>
+                  </svg>
                 </div>
               </div>
 
-              <div className="mt-3 pt-2 border-t border-[#4E665B]/60 text-right">
-                <span className="text-xs text-[#8DA397] font-mono">
-                  InsightML Field Guide v2.4
-                </span>
+              {/* Status List */}
+              <div className="bg-[#182320] border border-[#4E665B] rounded-xl p-3.5 space-y-2 text-xs font-sans mt-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-[#8DA397]">Modules</span>
+                  <span className="font-mono text-[#EAF4EE] font-bold">3 / 3</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-[#8DA397]">Current User</span>
+                  <span className="font-mono text-[#6FCF97] font-bold">Guest</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-[#8DA397]">Learning Progress</span>
+                  <span className="font-mono text-[#E9C46A] font-bold">0%</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-[#8DA397]">Completed Lessons</span>
+                  <span className="font-mono text-[#EAF4EE] font-bold">0</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-[#8DA397]">Current Track</span>
+                  <span className="font-mono text-[#6FCF97] font-bold">Visual ML</span>
+                </div>
+                <div className="flex justify-between items-center border-t border-[#4E665B]/60 pt-1.5 mt-1.5">
+                  <span className="text-[#8DA397]">System Status</span>
+                  <span className="font-mono text-[#6FCF97] font-bold">Ready</span>
+                </div>
               </div>
             </section>
 
           </div>
+
+          {/* ── SECTION 2: THREE EQUAL MODULE CARDS ──────────────────────── */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 lg:gap-6">
+            {MODULE_ZONES.map((zone) => (
+              <section
+                key={zone.id}
+                className="bg-[#2C3C35] hover:bg-[#33463E] border border-[#4E665B] rounded-2xl p-6 shadow-sm hover:-translate-y-0.5 hover:scale-[1.01] transition-all duration-200 flex flex-col justify-between"
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-4 pb-3 border-b border-[#4E665B]/60">
+                    <div className="flex items-center gap-2.5">
+                      <div
+                        className="w-9 h-9 rounded-xl bg-[#22302B] text-lg flex items-center justify-center border border-[#4E665B]"
+                      >
+                        {zone.icon}
+                      </div>
+                      <h3 className="font-pixel text-xs font-bold text-[#EAF4EE]">
+                        {zone.title}
+                      </h3>
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-[#C9D7CF] leading-relaxed font-sans mb-6">
+                    {zone.desc}
+                  </p>
+                </div>
+
+                <div>
+                  <Link href={zone.href} className="inline-block w-full">
+                    <RetroButton variant="primary" className="w-full py-2.5">
+                      Launch Module ▶
+                    </RetroButton>
+                  </Link>
+                </div>
+              </section>
+            ))}
+          </div>
+
+          {/* ── SECTION 3: TWO COLUMNS (HOW IT WORKS & PLATFORM GOALS) ──── */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 lg:gap-6 items-stretch">
+
+            {/* LEFT: How InsightML Works */}
+            <div className="space-y-3">
+              <h2 className="font-pixel text-xs font-bold text-[#EAF4EE] uppercase tracking-wider flex items-center gap-2 px-1">
+                <span>⚙️</span> How InsightML Works
+              </h2>
+
+              <div className="space-y-3">
+                {HOW_IT_WORKS.map((item, i) => (
+                  <div
+                    key={i}
+                    className="bg-[#2C3C35] hover:bg-[#33463E] border border-[#4E665B] rounded-2xl p-4 shadow-sm transition-all duration-200 flex items-start gap-3.5"
+                  >
+                    <div className="w-9 h-9 rounded-xl bg-[#22302B] flex items-center justify-center text-base border border-[#4E665B] shrink-0">
+                      {item.icon}
+                    </div>
+                    <div>
+                      <h4 className="font-pixel text-xs font-bold text-[#EAF4EE] mb-1">
+                        {item.title}
+                      </h4>
+                      <p className="text-xs text-[#C9D7CF] leading-relaxed font-sans">
+                        {item.desc}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* RIGHT: Platform Goals */}
+            <div className="space-y-3">
+              <h2 className="font-pixel text-xs font-bold text-[#EAF4EE] uppercase tracking-wider flex items-center gap-2 px-1">
+                <span>🎯</span> Platform Goals
+              </h2>
+
+              <div className="bg-[#2C3C35] hover:bg-[#33463E] border border-[#4E665B] rounded-2xl p-5 shadow-sm transition-all duration-200 h-calc flex flex-col justify-between">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {PLATFORM_GOALS.map((goal, i) => (
+                    <div
+                      key={i}
+                      className="bg-[#22302B] border border-[#4E665B] rounded-xl p-3 flex flex-col gap-1"
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[#6FCF97] font-bold text-xs">✦</span>
+                        <h4 className="font-sans text-xs font-semibold text-[#EAF4EE]">
+                          {goal.label}
+                        </h4>
+                      </div>
+                      <p className="text-[11px] text-[#8DA397] leading-tight font-sans">
+                        {goal.desc}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+          </div>
+
         </div>
       </main>
     </div>
