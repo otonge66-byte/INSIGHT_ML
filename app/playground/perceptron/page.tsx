@@ -22,6 +22,8 @@ import {
   calculateAccuracy,
 } from "@/lib/ml/perceptron";
 
+import { BackButton } from "@/components/ui/BackButton";
+
 type AppMode = "select" | "story" | "sandbox" | "challenge";
 
 export default function PerceptronPlayground() {
@@ -148,23 +150,24 @@ export default function PerceptronPlayground() {
   // ── Mode Selection Screen ─────────────────────────────────────────────────
   if (appMode === "select") {
     return (
-      <main className="min-h-screen bg-[#1e140e] text-[#fefae0] flex flex-col items-center justify-center p-8 font-vt323">
-        {/* Module nav still accessible */}
-        <nav className="fixed top-4 right-4 flex items-center gap-2 z-10">
-          <Link href="/"
-            className="px-3 py-1.5 bg-[#1e140e] hover:bg-[#281b12] text-[#5c3d2e] hover:text-[#a3b18a] font-pixel text-[10px] uppercase border-2 border-[#2e1e14] shadow-[2px_2px_0px_0px_#0f0a07] transition-colors">
-            ← Dashboard
-          </Link>
+      <main className="min-h-screen bg-[#182320] text-[#C9D7CF] flex flex-col items-center justify-center p-6 md:p-8 font-sans relative">
+        {/* Top-Left Back Button */}
+        <div className="fixed top-4 left-4 z-30">
+          <BackButton href="/" label="Back to Dashboard" />
+        </div>
+
+        {/* Module nav right */}
+        <nav className="fixed top-4 right-4 flex items-center gap-2 z-10 font-sans">
           <Link href="/playground/perceptron"
-            className="px-3 py-1.5 bg-[#386641] text-[#fefae0] font-pixel text-[10px] uppercase border-2 border-[#1b3521] shadow-[2px_2px_0px_0px_#0f0a07]">
+            className="px-3 py-1.5 bg-[#2C3C35] text-[#6FCF97] font-pixel text-[10px] uppercase border border-[#4E665B] rounded-xl">
             01. Perceptron
           </Link>
           <Link href="/playground/gradient-descent"
-            className="px-3 py-1.5 bg-[#3e271c] hover:bg-[#5c3d2e] text-[#a3b18a] font-pixel text-[10px] uppercase border-2 border-[#1e140e] shadow-[2px_2px_0px_0px_#0f0a07] transition-colors">
+            className="px-3 py-1.5 bg-[#22302B] hover:bg-[#2C3C35] text-[#C9D7CF] font-pixel text-[10px] uppercase border border-[#4E665B] rounded-xl transition-colors">
             02. Gradient Descent
           </Link>
           <Link href="/playground/neural-net"
-            className="px-3 py-1.5 bg-[#3e271c] hover:bg-[#5c3d2e] text-[#a3b18a] font-pixel text-[10px] uppercase border-2 border-[#1e140e] shadow-[2px_2px_0px_0px_#0f0a07] transition-colors">
+            className="px-3 py-1.5 bg-[#22302B] hover:bg-[#2C3C35] text-[#C9D7CF] font-pixel text-[10px] uppercase border border-[#4E665B] rounded-xl transition-colors">
             03. Neural Net
           </Link>
         </nav>
@@ -172,30 +175,30 @@ export default function PerceptronPlayground() {
         <div className="max-w-3xl w-full text-center flex flex-col items-center gap-8">
           {/* Title */}
           <div>
-            <span className="bg-[#386641] text-[#fefae0] font-pixel text-[10px] uppercase px-2 py-1 border border-[#1b3521] inline-block mb-4">
+            <span className="bg-[#2C3C35] text-[#6FCF97] font-pixel text-[10px] uppercase px-3 py-1 border border-[#4E665B] rounded-full inline-block mb-4">
               Module 01
             </span>
-            <h1 className="text-3xl font-pixel text-[#dda15e] uppercase tracking-wider mb-2">
+            <h1 className="text-2xl sm:text-3xl font-pixel text-[#EAF4EE] uppercase tracking-wider mb-2">
               Perceptron Visualizer
             </h1>
-            <p className="text-[#a3b18a] text-xl">Choose your experience:</p>
+            <p className="text-[#8DA397] text-sm">Choose your learning mode:</p>
           </div>
 
           {/* Mode cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 w-full">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 w-full">
             {/* Story Mode card */}
             <button
               onClick={enterStoryMode}
-              className="group bg-[#281b12] border-4 border-[#386641] shadow-[6px_6px_0px_0px_#0f0a07] p-6 text-left flex flex-col gap-3 hover:bg-[#2e2214] hover:-translate-y-1 transition-all active:translate-y-0 active:shadow-[2px_2px_0px_0px_#0f0a07]"
+              className="group bg-[#2C3C35] hover:bg-[#33463E] border border-[#4E665B] rounded-2xl p-6 text-left flex flex-col gap-3 shadow-sm hover:-translate-y-0.5 hover:scale-[1.01] transition-all duration-200"
             >
-              <div className="text-4xl">📖</div>
+              <div className="text-3xl">📖</div>
               <div>
-                <h2 className="font-pixel text-[12px] text-[#dda15e] uppercase mb-2">Story Mode</h2>
-                <p className="text-[#a3b18a] text-lg leading-snug">
+                <h2 className="font-pixel text-xs text-[#EAF4EE] uppercase mb-2">Story Mode</h2>
+                <p className="text-[#C9D7CF] text-xs leading-relaxed font-sans">
                   Guided walkthrough with BYTE the robot professor.
                 </p>
               </div>
-              <span className="font-pixel text-[10px] text-[#386641] border border-[#386641] px-2 py-1 self-start">
+              <span className="font-pixel text-[10px] text-[#6FCF97] border border-[#4E665B] bg-[#22302B] px-2.5 py-1 rounded-lg self-start mt-auto">
                 ▶ START TUTORIAL
               </span>
             </button>
@@ -203,16 +206,16 @@ export default function PerceptronPlayground() {
             {/* Challenge Mode card */}
             <button
               onClick={enterChallengeMode}
-              className="group bg-[#281b12] border-4 border-[#dda15e] shadow-[6px_6px_0px_0px_#0f0a07] p-6 text-left flex flex-col gap-3 hover:bg-[#2e2214] hover:-translate-y-1 transition-all active:translate-y-0 active:shadow-[2px_2px_0px_0px_#0f0a07]"
+              className="group bg-[#2C3C35] hover:bg-[#33463E] border border-[#4E665B] rounded-2xl p-6 text-left flex flex-col gap-3 shadow-sm hover:-translate-y-0.5 hover:scale-[1.01] transition-all duration-200"
             >
-              <div className="text-4xl">🏆</div>
+              <div className="text-3xl">🏆</div>
               <div>
-                <h2 className="font-pixel text-[12px] text-[#dda15e] uppercase mb-2">Challenge Mode</h2>
-                <p className="text-[#a3b18a] text-lg leading-snug">
+                <h2 className="font-pixel text-xs text-[#EAF4EE] uppercase mb-2">Challenge Mode</h2>
+                <p className="text-[#C9D7CF] text-xs leading-relaxed font-sans">
                   &quot;{perceptronChallenge.title}&quot; — {perceptronChallenge.goalSummary}
                 </p>
               </div>
-              <span className="font-pixel text-[10px] text-[#dda15e] border border-[#dda15e] px-2 py-1 self-start">
+              <span className="font-pixel text-[10px] text-[#E9C46A] border border-[#4E665B] bg-[#22302B] px-2.5 py-1 rounded-lg self-start mt-auto">
                 ▶ START CHALLENGE
               </span>
             </button>
@@ -220,16 +223,16 @@ export default function PerceptronPlayground() {
             {/* Sandbox Mode card */}
             <button
               onClick={enterSandboxMode}
-              className="group bg-[#281b12] border-4 border-[#382219] shadow-[6px_6px_0px_0px_#0f0a07] p-6 text-left flex flex-col gap-3 hover:bg-[#2e2214] hover:-translate-y-1 transition-all active:translate-y-0 active:shadow-[2px_2px_0px_0px_#0f0a07]"
+              className="group bg-[#2C3C35] hover:bg-[#33463E] border border-[#4E665B] rounded-2xl p-6 text-left flex flex-col gap-3 shadow-sm hover:-translate-y-0.5 hover:scale-[1.01] transition-all duration-200"
             >
-              <div className="text-4xl">🔬</div>
+              <div className="text-3xl">🔬</div>
               <div>
-                <h2 className="font-pixel text-[12px] text-[#dda15e] uppercase mb-2">Sandbox Mode</h2>
-                <p className="text-[#a3b18a] text-lg leading-snug">
+                <h2 className="font-pixel text-xs text-[#EAF4EE] uppercase mb-2">Sandbox Mode</h2>
+                <p className="text-[#C9D7CF] text-xs leading-relaxed font-sans">
                   Jump straight in and experiment freely.
                 </p>
               </div>
-              <span className="font-pixel text-[10px] text-[#a3b18a] border border-[#382219] px-2 py-1 self-start">
+              <span className="font-pixel text-[10px] text-[#8DA397] border border-[#4E665B] bg-[#22302B] px-2.5 py-1 rounded-lg self-start mt-auto">
                 ▶ FREE EXPLORE
               </span>
             </button>
@@ -241,58 +244,60 @@ export default function PerceptronPlayground() {
 
   // ── Shared Playground UI (Story + Sandbox + Challenge all render this) ────
   return (
-    <main className="min-h-screen bg-[#1e140e] text-[#fefae0] p-4 md:p-8 font-vt323 selection:bg-[#dda15e] selection:text-[#1e140e]">
+    <main className="min-h-screen bg-[#182320] text-[#C9D7CF] p-4 md:p-8 font-sans selection:bg-[#6FCF97] selection:text-[#182320]">
       {/* Top Header Bar */}
-      <header className="max-w-7xl mx-auto mb-6 bg-[#281b12] border-4 border-[#382219] p-4 shadow-[6px_6px_0px_0px_#0f0a07] flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-3">
-            <span className="bg-[#386641] text-[#fefae0] font-pixel text-[10px] uppercase px-2 py-1 border border-[#1b3521]">
-              Module 01
-            </span>
-            <h1 className="text-2xl md:text-3xl font-pixel text-[#dda15e] tracking-wider uppercase">
-              Perceptron Visualizer
-            </h1>
-            {/* Mode badge */}
-            {appMode === "story" ? (
-              <span className="bg-[#dda15e] text-[#1e140e] font-pixel text-[10px] px-2 py-1 border border-[#7a5225]">
-                STORY MODE
+      <header className="max-w-7xl mx-auto mb-6 bg-[#22302B] border border-[#4E665B] p-4 sm:p-5 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <BackButton href="/" label="Back to Dashboard" />
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="bg-[#2C3C35] text-[#6FCF97] font-pixel text-[10px] uppercase px-2.5 py-1 rounded-lg border border-[#4E665B]">
+                Module 01
               </span>
-            ) : appMode === "challenge" ? (
-              <button
-                onClick={() => { challenge.reset(); setAppMode("select"); }}
-                className="text-[#bc4749] hover:text-[#dda15e] font-pixel text-[10px] border border-[#6b2123] px-2 py-1 transition-colors"
-              >
-                CHALLENGE ↺
-              </button>
-            ) : (
-              <button
-                onClick={() => setAppMode("select")}
-                className="text-[#a3b18a] hover:text-[#dda15e] font-pixel text-[10px] border border-[#382219] px-2 py-1 transition-colors"
-              >
-                SANDBOX ↺
-              </button>
-            )}
+              <h1 className="text-lg md:text-xl font-pixel text-[#EAF4EE] tracking-wide uppercase">
+                Perceptron Meadow
+              </h1>
+              {/* Mode badge */}
+              {appMode === "story" ? (
+                <button
+                  onClick={() => { story.skip(); setAppMode("select"); }}
+                  className="bg-[#2C3C35] text-[#E9C46A] hover:bg-[#33463E] font-pixel text-[10px] px-2.5 py-1 rounded-lg border border-[#4E665B] transition-colors cursor-pointer"
+                >
+                  STORY MODE ↺
+                </button>
+              ) : appMode === "challenge" ? (
+                <button
+                  onClick={() => { challenge.reset(); setAppMode("select"); }}
+                  className="bg-[#2C3C35] text-[#D96C6C] hover:bg-[#33463E] font-pixel text-[10px] border border-[#4E665B] px-2.5 py-1 rounded-lg transition-colors"
+                >
+                  CHALLENGE ↺
+                </button>
+              ) : (
+                <button
+                  onClick={() => setAppMode("select")}
+                  className="bg-[#2C3C35] text-[#8DA397] hover:bg-[#33463E] font-pixel text-[10px] border border-[#4E665B] px-2.5 py-1 rounded-lg transition-colors"
+                >
+                  SANDBOX ↺
+                </button>
+              )}
+            </div>
+            <p className="text-[#8DA397] text-xs mt-1 font-sans">
+              Single-Layer Neural Unit • Linear Binary Classifier • Pure TS Engine
+            </p>
           </div>
-          <p className="text-[#a3b18a] text-lg mt-1 font-vt323">
-            Single-Layer Neural Unit • Linear Binary Classifier • Pure TS Engine
-          </p>
         </div>
 
         <nav className="flex items-center gap-2">
-          <Link href="/"
-            className="px-3 py-1.5 bg-[#1e140e] hover:bg-[#281b12] text-[#5c3d2e] hover:text-[#a3b18a] font-pixel text-[10px] uppercase border-2 border-[#2e1e14] shadow-[2px_2px_0px_0px_#0f0a07] transition-colors">
-            ← Dashboard
-          </Link>
           <Link href="/playground/perceptron"
-            className="px-3 py-1.5 bg-[#386641] text-[#fefae0] font-pixel text-[10px] uppercase border-2 border-[#1b3521] shadow-[2px_2px_0px_0px_#0f0a07]">
+            className="px-3 py-1.5 bg-[#2C3C35] text-[#6FCF97] font-pixel text-[10px] uppercase border border-[#4E665B] rounded-xl">
             01. Perceptron
           </Link>
           <Link href="/playground/gradient-descent"
-            className="px-3 py-1.5 bg-[#3e271c] hover:bg-[#5c3d2e] text-[#a3b18a] font-pixel text-[10px] uppercase border-2 border-[#1e140e] shadow-[2px_2px_0px_0px_#0f0a07] transition-colors">
-            02. Gradient Descent
+            className="px-3 py-1.5 bg-[#22302B] hover:bg-[#2C3C35] text-[#C9D7CF] font-pixel text-[10px] uppercase border border-[#4E665B] rounded-xl transition-colors">
+            02. Gradient
           </Link>
           <Link href="/playground/neural-net"
-            className="px-3 py-1.5 bg-[#3e271c] hover:bg-[#5c3d2e] text-[#a3b18a] font-pixel text-[10px] uppercase border-2 border-[#1e140e] shadow-[2px_2px_0px_0px_#0f0a07] transition-colors">
+            className="px-3 py-1.5 bg-[#22302B] hover:bg-[#2C3C35] text-[#C9D7CF] font-pixel text-[10px] uppercase border border-[#4E665B] rounded-xl transition-colors">
             03. Neural Net
           </Link>
         </nav>
@@ -323,7 +328,7 @@ export default function PerceptronPlayground() {
           )}
 
           {/* Controls Panel */}
-          <RetroPanel title="Hyperparameters & Training" borderColor="border-[#382219]">
+          <RetroPanel title="Hyperparameters & Training" borderColor="border-[#4E665B]">
             <div className="flex flex-col gap-4">
               {/* Learning Rate Slider */}
               <div id="story-lr-slider">
@@ -373,13 +378,13 @@ export default function PerceptronPlayground() {
               </div>
 
               {/* Preset Dataset */}
-              <div className="pt-3 border-t-2 border-[#382219]">
-                <span className="font-pixel text-[10px] text-[#a3b18a] block mb-2 uppercase">
+              <div className="pt-3 border-t border-[#4E665B]">
+                <span className="font-pixel text-[10px] text-[#8DA397] block mb-2 uppercase">
                   Presets
                 </span>
                 <RetroButton
                   variant="secondary"
-                  className="w-full text-[10px]"
+                  className="w-full text-xs"
                   onClick={loadPresetSeparable}
                 >
                   Load Linearly Separable Data
@@ -391,46 +396,46 @@ export default function PerceptronPlayground() {
           {/* Model Weights & Metrics Readout */}
           <RetroPanel
             title="Live Weight & Bias Readout"
-            borderColor="border-[#b37d36]"
+            borderColor="border-[#4E665B]"
           >
             <div id="story-weights-panel" className="space-y-3">
               <div className="grid grid-cols-3 gap-2 text-center">
-                <div className="bg-[#1e140e] p-2 border-2 border-[#382219]">
-                  <span className="text-[#a3b18a] block text-sm font-pixel text-[9px]">W1 (X1)</span>
-                  <span className="text-[#dda15e] font-vt323 text-2xl font-bold">
+                <div className="bg-[#182320] p-2.5 rounded-xl border border-[#4E665B]">
+                  <span className="text-[#8DA397] block text-[9px] font-pixel">W1 (X1)</span>
+                  <span className="text-[#6FCF97] font-mono text-base font-bold">
                     {weights.w1 >= 0 ? `+${weights.w1.toFixed(4)}` : weights.w1.toFixed(4)}
                   </span>
                 </div>
-                <div className="bg-[#1e140e] p-2 border-2 border-[#382219]">
-                  <span className="text-[#a3b18a] block text-sm font-pixel text-[9px]">W2 (X2)</span>
-                  <span className="text-[#dda15e] font-vt323 text-2xl font-bold">
+                <div className="bg-[#182320] p-2.5 rounded-xl border border-[#4E665B]">
+                  <span className="text-[#8DA397] block text-[9px] font-pixel">W2 (X2)</span>
+                  <span className="text-[#6FCF97] font-mono text-base font-bold">
                     {weights.w2 >= 0 ? `+${weights.w2.toFixed(4)}` : weights.w2.toFixed(4)}
                   </span>
                 </div>
-                <div className="bg-[#1e140e] p-2 border-2 border-[#382219]">
-                  <span className="text-[#a3b18a] block text-sm font-pixel text-[9px]">BIAS (b)</span>
-                  <span className="text-[#fefae0] font-vt323 text-2xl font-bold">
+                <div className="bg-[#182320] p-2.5 rounded-xl border border-[#4E665B]">
+                  <span className="text-[#8DA397] block text-[9px] font-pixel">BIAS (b)</span>
+                  <span className="text-[#EAF4EE] font-mono text-base font-bold">
                     {weights.bias >= 0 ? `+${weights.bias.toFixed(4)}` : weights.bias.toFixed(4)}
                   </span>
                 </div>
               </div>
 
               {/* Stats Bar */}
-              <div className="bg-[#1e140e] p-3 border-2 border-[#382219] space-y-2 text-xl">
+              <div className="bg-[#182320] p-3 rounded-xl border border-[#4E665B] space-y-2 text-xs font-sans">
                 <div className="flex justify-between items-center">
-                  <span className="text-[#a3b18a]">Total Samples:</span>
-                  <span className="text-[#fefae0] font-bold">{points.length} points</span>
+                  <span className="text-[#8DA397]">Total Samples:</span>
+                  <span className="text-[#EAF4EE] font-medium">{points.length} points</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-[#a3b18a]">Training Steps:</span>
-                  <span className="text-[#dda15e] font-bold">{stepCount}</span>
+                  <span className="text-[#8DA397]">Training Steps:</span>
+                  <span className="text-[#6FCF97] font-mono font-medium">{stepCount}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-[#a3b18a]">Accuracy:</span>
-                  <span className={`font-bold ${
-                    currentAccuracy === 100 ? "text-[#a3b18a]"
-                    : currentAccuracy >= 75 ? "text-[#dda15e]"
-                    : "text-[#bc4749]"
+                  <span className="text-[#8DA397]">Accuracy:</span>
+                  <span className={`font-mono font-bold ${
+                    currentAccuracy === 100 ? "text-[#6FCF97]"
+                    : currentAccuracy >= 75 ? "text-[#E9C46A]"
+                    : "text-[#D96C6C]"
                   }`}>
                     {currentAccuracy}%
                   </span>
@@ -438,11 +443,11 @@ export default function PerceptronPlayground() {
               </div>
 
               {/* Formula display */}
-              <div className="bg-[#1e140e] p-2.5 border-2 border-[#382219] text-lg text-[#a3b18a] leading-relaxed">
-                <p className="text-[#dda15e] font-pixel text-[9px] uppercase mb-1">
+              <div className="bg-[#182320] p-3 rounded-xl border border-[#4E665B] text-xs text-[#8DA397] leading-relaxed">
+                <p className="text-[#E9C46A] font-pixel text-[9px] uppercase mb-1">
                   Decision Equation:
                 </p>
-                <code className="font-vt323 text-xl text-[#fefae0]">
+                <code className="font-mono text-xs text-[#EAF4EE]">
                   {weights.w1.toFixed(2)}·x₁ + {weights.w2.toFixed(2)}·x₂ + {weights.bias.toFixed(2)} = 0
                 </code>
               </div>

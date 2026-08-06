@@ -23,6 +23,8 @@ import {
   gradientDescentStep,
 } from "@/lib/ml/gradientDescent";
 
+import { BackButton } from "@/components/ui/BackButton";
+
 const DEFAULT_START: Point2D = { x: -3.5, y: 3.5 };
 
 type AppMode = "select" | "story" | "sandbox" | "challenge";
@@ -162,7 +164,7 @@ export default function GradientDescentPlayground() {
       challenge.update({ stepCount, currentLoss, lossHistory });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [appMode, stepCount]);
+  }, [appMode, stepCount, currentLoss, lossHistory]);
 
   const handleChallengeRetry = () => {
     challenge.reset();
@@ -180,52 +182,53 @@ export default function GradientDescentPlayground() {
   // ── Mode Selection Screen ─────────────────────────────────────────────────
   if (appMode === "select") {
     return (
-      <main className="min-h-screen bg-[#1e140e] text-[#fefae0] flex flex-col items-center justify-center p-8 font-vt323">
-        {/* Module nav still accessible */}
-        <nav className="fixed top-4 right-4 flex items-center gap-2 z-10">
-          <Link href="/"
-            className="px-3 py-1.5 bg-[#1e140e] hover:bg-[#281b12] text-[#5c3d2e] hover:text-[#a3b18a] font-pixel text-[10px] uppercase border-2 border-[#2e1e14] shadow-[2px_2px_0px_0px_#0f0a07] transition-colors">
-            ← Dashboard
-          </Link>
+      <main className="min-h-screen bg-[#182320] text-[#C9D7CF] flex flex-col items-center justify-center p-6 md:p-8 font-sans relative">
+        {/* Top-Left Back Button */}
+        <div className="fixed top-4 left-4 z-30">
+          <BackButton href="/" label="Back to Dashboard" />
+        </div>
+
+        {/* Module nav right */}
+        <nav className="fixed top-4 right-4 flex items-center gap-2 z-10 font-sans">
           <Link href="/playground/perceptron"
-            className="px-3 py-1.5 bg-[#3e271c] hover:bg-[#5c3d2e] text-[#a3b18a] font-pixel text-[10px] uppercase border-2 border-[#1e140e] shadow-[2px_2px_0px_0px_#0f0a07] transition-colors">
+            className="px-3 py-1.5 bg-[#22302B] hover:bg-[#2C3C35] text-[#C9D7CF] font-pixel text-[10px] uppercase border border-[#4E665B] rounded-xl transition-colors">
             01. Perceptron
           </Link>
           <Link href="/playground/gradient-descent"
-            className="px-3 py-1.5 bg-[#386641] text-[#fefae0] font-pixel text-[10px] uppercase border-2 border-[#1b3521] shadow-[2px_2px_0px_0px_#0f0a07]">
+            className="px-3 py-1.5 bg-[#2C3C35] text-[#6FCF97] font-pixel text-[10px] uppercase border border-[#4E665B] rounded-xl">
             02. Gradient Descent
           </Link>
           <Link href="/playground/neural-net"
-            className="px-3 py-1.5 bg-[#3e271c] hover:bg-[#5c3d2e] text-[#a3b18a] font-pixel text-[10px] uppercase border-2 border-[#1e140e] shadow-[2px_2px_0px_0px_#0f0a07] transition-colors">
+            className="px-3 py-1.5 bg-[#22302B] hover:bg-[#2C3C35] text-[#C9D7CF] font-pixel text-[10px] uppercase border border-[#4E665B] rounded-xl transition-colors">
             03. Neural Net
           </Link>
         </nav>
 
         <div className="max-w-3xl w-full text-center flex flex-col items-center gap-8">
           <div>
-            <span className="bg-[#dda15e] text-[#1e140e] font-pixel text-[10px] uppercase px-2 py-1 border border-[#7a5225] inline-block mb-4">
+            <span className="bg-[#2C3C35] text-[#6FCF97] font-pixel text-[10px] uppercase px-3 py-1 rounded-full border border-[#4E665B] font-bold inline-block mb-4">
               Module 02
             </span>
-            <h1 className="text-3xl font-pixel text-[#dda15e] uppercase tracking-wider mb-2">
-              Gradient Descent Visualizer
+            <h1 className="text-2xl sm:text-3xl font-pixel text-[#EAF4EE] uppercase tracking-wider mb-2">
+              Gradient Mountain Visualizer
             </h1>
-            <p className="text-[#a3b18a] text-xl">Choose your experience:</p>
+            <p className="text-[#8DA397] text-sm">Choose your learning mode:</p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 w-full">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 w-full">
             {/* Story Mode card */}
             <button
               onClick={enterStoryMode}
-              className="group bg-[#281b12] border-4 border-[#386641] shadow-[6px_6px_0px_0px_#0f0a07] p-6 text-left flex flex-col gap-3 hover:bg-[#2e2214] hover:-translate-y-1 transition-all active:translate-y-0 active:shadow-[2px_2px_0px_0px_#0f0a07]"
+              className="group bg-[#2C3C35] hover:bg-[#33463E] border border-[#4E665B] rounded-2xl p-6 text-left flex flex-col gap-3 shadow-sm hover:-translate-y-0.5 hover:scale-[1.01] transition-all duration-200"
             >
-              <div className="text-4xl">📖</div>
+              <div className="text-3xl">📖</div>
               <div>
-                <h2 className="font-pixel text-[12px] text-[#dda15e] uppercase mb-2">Story Mode</h2>
-                <p className="text-[#a3b18a] text-lg leading-snug">
+                <h2 className="font-pixel text-xs text-[#EAF4EE] uppercase mb-2">Story Mode</h2>
+                <p className="text-[#C9D7CF] text-xs leading-relaxed font-sans">
                   Guided walkthrough with BYTE. Learn loss surfaces and learning rate dynamics.
                 </p>
               </div>
-              <span className="font-pixel text-[10px] text-[#386641] border border-[#386641] px-2 py-1 self-start">
+              <span className="font-pixel text-[10px] bg-[#22302B] text-[#6FCF97] border border-[#4E665B] px-2.5 py-1 rounded-lg self-start mt-auto">
                 ▶ START TUTORIAL
               </span>
             </button>
@@ -233,16 +236,16 @@ export default function GradientDescentPlayground() {
             {/* Challenge Mode card */}
             <button
               onClick={enterChallengeMode}
-              className="group bg-[#281b12] border-4 border-[#dda15e] shadow-[6px_6px_0px_0px_#0f0a07] p-6 text-left flex flex-col gap-3 hover:bg-[#2e2214] hover:-translate-y-1 transition-all active:translate-y-0 active:shadow-[2px_2px_0px_0px_#0f0a07]"
+              className="group bg-[#2C3C35] hover:bg-[#33463E] border border-[#4E665B] rounded-2xl p-6 text-left flex flex-col gap-3 shadow-sm hover:-translate-y-0.5 hover:scale-[1.01] transition-all duration-200"
             >
-              <div className="text-4xl">🏆</div>
+              <div className="text-3xl">🏆</div>
               <div>
-                <h2 className="font-pixel text-[12px] text-[#dda15e] uppercase mb-2">Challenge Mode</h2>
-                <p className="text-[#a3b18a] text-lg leading-snug">
+                <h2 className="font-pixel text-xs text-[#EAF4EE] uppercase mb-2">Challenge Mode</h2>
+                <p className="text-[#C9D7CF] text-xs leading-relaxed font-sans">
                   &quot;{gradientDescentChallenge.title}&quot; — {gradientDescentChallenge.goalSummary}
                 </p>
               </div>
-              <span className="font-pixel text-[10px] text-[#dda15e] border border-[#dda15e] px-2 py-1 self-start">
+              <span className="font-pixel text-[10px] bg-[#22302B] text-[#E9C46A] border border-[#4E665B] px-2.5 py-1 rounded-lg self-start mt-auto">
                 ▶ START CHALLENGE
               </span>
             </button>
@@ -250,16 +253,16 @@ export default function GradientDescentPlayground() {
             {/* Sandbox Mode card */}
             <button
               onClick={enterSandboxMode}
-              className="group bg-[#281b12] border-4 border-[#382219] shadow-[6px_6px_0px_0px_#0f0a07] p-6 text-left flex flex-col gap-3 hover:bg-[#2e2214] hover:-translate-y-1 transition-all active:translate-y-0 active:shadow-[2px_2px_0px_0px_#0f0a07]"
+              className="group bg-[#2C3C35] hover:bg-[#33463E] border border-[#4E665B] rounded-2xl p-6 text-left flex flex-col gap-3 shadow-sm hover:-translate-y-0.5 hover:scale-[1.01] transition-all duration-200"
             >
-              <div className="text-4xl">🔬</div>
+              <div className="text-3xl">🔬</div>
               <div>
-                <h2 className="font-pixel text-[12px] text-[#dda15e] uppercase mb-2">Sandbox Mode</h2>
-                <p className="text-[#a3b18a] text-lg leading-snug">
+                <h2 className="font-pixel text-xs text-[#EAF4EE] uppercase mb-2">Sandbox Mode</h2>
+                <p className="text-[#C9D7CF] text-xs leading-relaxed font-sans">
                   Jump straight in. Experiment with surfaces, learning rates, and start points.
                 </p>
               </div>
-              <span className="font-pixel text-[10px] text-[#a3b18a] border border-[#382219] px-2 py-1 self-start">
+              <span className="font-pixel text-[10px] bg-[#22302B] text-[#8DA397] border border-[#4E665B] px-2.5 py-1 rounded-lg self-start mt-auto">
                 ▶ FREE EXPLORE
               </span>
             </button>
@@ -271,58 +274,60 @@ export default function GradientDescentPlayground() {
 
   // ── Shared Playground UI ──────────────────────────────────────────────────
   return (
-    <main className="min-h-screen bg-[#1e140e] text-[#fefae0] p-4 md:p-8 font-vt323 selection:bg-[#dda15e] selection:text-[#1e140e]">
+    <main className="min-h-screen bg-[#182320] text-[#C9D7CF] p-4 md:p-8 font-sans selection:bg-[#6FCF97] selection:text-[#182320]">
       {/* Top Navigation Bar */}
-      <header className="max-w-7xl mx-auto mb-6 bg-[#281b12] border-4 border-[#382219] p-4 shadow-[6px_6px_0px_0px_#0f0a07] flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-3">
-            <span className="bg-[#dda15e] text-[#1e140e] font-pixel text-[10px] uppercase px-2 py-1 border border-[#7a5225] font-bold">
-              Module 02
-            </span>
-            <h1 className="text-2xl md:text-3xl font-pixel text-[#dda15e] tracking-wider uppercase">
-              Gradient Descent Visualizer
-            </h1>
-            {/* Mode badge */}
-            {appMode === "story" ? (
-              <span className="bg-[#dda15e] text-[#1e140e] font-pixel text-[10px] px-2 py-1 border border-[#7a5225]">
-                STORY MODE
+      <header className="max-w-7xl mx-auto mb-6 bg-[#22302B] border border-[#4E665B] p-4 sm:p-5 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <BackButton href="/" label="Back to Dashboard" />
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="bg-[#2C3C35] text-[#6FCF97] font-pixel text-[10px] uppercase px-2.5 py-1 rounded-lg border border-[#4E665B]">
+                Module 02
               </span>
-            ) : appMode === "challenge" ? (
-              <button
-                onClick={() => { challenge.reset(); setAppMode("select"); }}
-                className="text-[#bc4749] hover:text-[#dda15e] font-pixel text-[10px] border border-[#6b2123] px-2 py-1 transition-colors"
-              >
-                CHALLENGE ↺
-              </button>
-            ) : (
-              <button
-                onClick={() => setAppMode("select")}
-                className="text-[#a3b18a] hover:text-[#dda15e] font-pixel text-[10px] border border-[#382219] px-2 py-1 transition-colors"
-              >
-                SANDBOX ↺
-              </button>
-            )}
+              <h1 className="text-lg md:text-xl font-pixel text-[#EAF4EE] tracking-wide uppercase">
+                Gradient Mountain
+              </h1>
+              {/* Mode badge */}
+              {appMode === "story" ? (
+                <button
+                  onClick={() => { story.skip(); setAppMode("select"); }}
+                  className="bg-[#2C3C35] text-[#E9C46A] hover:bg-[#33463E] font-pixel text-[10px] px-2.5 py-1 rounded-lg border border-[#4E665B] transition-colors cursor-pointer"
+                >
+                  STORY MODE ↺
+                </button>
+              ) : appMode === "challenge" ? (
+                <button
+                  onClick={() => { challenge.reset(); setAppMode("select"); }}
+                  className="bg-[#2C3C35] text-[#D96C6C] hover:bg-[#33463E] font-pixel text-[10px] border border-[#4E665B] px-2.5 py-1 rounded-lg transition-colors"
+                >
+                  CHALLENGE ↺
+                </button>
+              ) : (
+                <button
+                  onClick={() => setAppMode("select")}
+                  className="bg-[#2C3C35] text-[#8DA397] hover:bg-[#33463E] font-pixel text-[10px] border border-[#4E665B] px-2.5 py-1 rounded-lg transition-colors"
+                >
+                  SANDBOX ↺
+                </button>
+              )}
+            </div>
+            <p className="text-[#8DA397] text-xs mt-1 font-sans">
+              Optimization surface navigation • Loss gradient computation
+            </p>
           </div>
-          <p className="text-[#a3b18a] text-lg mt-1 font-vt323">
-            Optimization Surfaces • Learning Rate Dynamics • Loss Minimization Trajectory
-          </p>
         </div>
 
-        <nav className="flex items-center gap-2">
-          <Link href="/"
-            className="px-3 py-1.5 bg-[#1e140e] hover:bg-[#281b12] text-[#5c3d2e] hover:text-[#a3b18a] font-pixel text-[10px] uppercase border-2 border-[#2e1e14] shadow-[2px_2px_0px_0px_#0f0a07] transition-colors">
-            ← Dashboard
-          </Link>
+        <nav className="flex items-center gap-2 font-sans">
           <Link href="/playground/perceptron"
-            className="px-3 py-1.5 bg-[#3e271c] hover:bg-[#5c3d2e] text-[#a3b18a] font-pixel text-[10px] uppercase border-2 border-[#1e140e] shadow-[2px_2px_0px_0px_#0f0a07] transition-colors">
+            className="px-3 py-1.5 bg-[#22302B] hover:bg-[#2C3C35] text-[#C9D7CF] font-pixel text-[10px] uppercase border border-[#4E665B] rounded-xl transition-colors">
             01. Perceptron
           </Link>
           <Link href="/playground/gradient-descent"
-            className="px-3 py-1.5 bg-[#dda15e] text-[#1e140e] font-pixel text-[10px] uppercase border-2 border-[#7a5225] shadow-[2px_2px_0px_0px_#0f0a07]">
-            02. Gradient Descent
+            className="px-3 py-1.5 bg-[#2C3C35] text-[#6FCF97] font-pixel text-[10px] uppercase border border-[#4E665B] rounded-xl">
+            02. Gradient
           </Link>
           <Link href="/playground/neural-net"
-            className="px-3 py-1.5 bg-[#3e271c] hover:bg-[#5c3d2e] text-[#a3b18a] font-pixel text-[10px] uppercase border-2 border-[#1e140e] shadow-[2px_2px_0px_0px_#0f0a07] transition-colors">
+            className="px-3 py-1.5 bg-[#22302B] hover:bg-[#2C3C35] text-[#C9D7CF] font-pixel text-[10px] uppercase border border-[#4E665B] rounded-xl transition-colors">
             03. Neural Net
           </Link>
         </nav>
@@ -355,11 +360,11 @@ export default function GradientDescentPlayground() {
 
           {/* Controls Panel */}
           <div id="story-gd-controls">
-            <RetroPanel title="Optimizer & Surface Setup" borderColor="border-[#382219]">
+            <RetroPanel title="Optimizer & Surface Setup" borderColor="border-[#4E665B]">
               <div className="flex flex-col gap-4">
                 {/* Preset Selector */}
                 <div>
-                  <span className="font-pixel text-[10px] text-[#a3b18a] block mb-2 uppercase">
+                  <span className="font-pixel text-[10px] text-[#8DA397] block mb-2 uppercase">
                     Loss Surface Surface:
                   </span>
                   <div className="grid grid-cols-3 gap-2">
@@ -367,10 +372,10 @@ export default function GradientDescentPlayground() {
                       <button
                         key={key}
                         onClick={() => handlePresetChange(key)}
-                        className={`font-pixel text-[9px] uppercase p-2 border-2 transition-all ${
+                        className={`font-pixel text-[9px] uppercase p-2 rounded-xl border transition-all ${
                           preset === key
-                            ? "bg-[#dda15e] text-[#1e140e] border-[#7a5225] shadow-[2px_2px_0px_0px_#0f0a07]"
-                            : "bg-[#1e140e] text-[#a3b18a] border-[#382219] hover:bg-[#281b12]"
+                            ? "bg-[#2C3C35] text-[#6FCF97] border-[#6FCF97]"
+                            : "bg-[#182320] text-[#8DA397] border-[#4E665B] hover:bg-[#2C3C35]"
                         }`}
                       >
                         {PRESETS[key].name}
@@ -421,23 +426,23 @@ export default function GradientDescentPlayground() {
           </div>
 
           {/* Loss Curve Chart */}
-          <RetroPanel title="Loss Convergence Chart" borderColor="border-[#382219]">
+          <RetroPanel title="Loss Convergence Chart" borderColor="border-[#4E665B]">
             <LossChart lossHistory={lossHistory} />
           </RetroPanel>
 
           {/* Readout Panel */}
-          <RetroPanel title="Optimizer Readout" borderColor="border-[#b37d36]">
-            <div className="space-y-3">
+          <RetroPanel title="Optimizer Readout" borderColor="border-[#4E665B]">
+            <div className="space-y-3 font-sans">
               {/* Status Badge */}
-              <div className="flex justify-between items-center bg-[#1e140e] p-2.5 border-2 border-[#382219]">
-                <span className="text-[#a3b18a]">Status:</span>
+              <div className="flex justify-between items-center bg-[#182320] p-3 rounded-xl border border-[#4E665B]">
+                <span className="text-[#8DA397] text-xs">Status:</span>
                 <span
-                  className={`font-pixel text-[10px] uppercase px-2.5 py-1 border ${
+                  className={`font-pixel text-[10px] uppercase px-2.5 py-1 rounded-lg border ${
                     isDiverging
-                      ? "bg-[#bc4749] text-[#fefae0] border-[#6b2123]"
+                      ? "bg-[#2C3C35] text-[#D96C6C] border-[#D96C6C]/40"
                       : isConverged
-                      ? "bg-[#386641] text-[#fefae0] border-[#1b3521]"
-                      : "bg-[#dda15e] text-[#1e140e] border-[#7a5225]"
+                      ? "bg-[#2C3C35] text-[#6FCF97] border-[#6FCF97]"
+                      : "bg-[#2C3C35] text-[#E9C46A] border-[#E9C46A]/40"
                   }`}
                 >
                   {isDiverging ? "⚠️ DIVERGING (η too high!)" : isConverged ? "✓ CONVERGED AT MINIMUM" : "⚡ MINIMIZING"}
@@ -446,42 +451,42 @@ export default function GradientDescentPlayground() {
 
               {/* Numerical Metrics */}
               <div className="grid grid-cols-3 gap-2 text-center">
-                <div className="bg-[#1e140e] p-2 border-2 border-[#382219]">
-                  <span className="text-[#a3b18a] block font-pixel text-[9px]">POS (x, y)</span>
-                  <span className="text-[#dda15e] font-vt323 text-xl font-bold">
+                <div className="bg-[#182320] p-2.5 rounded-xl border border-[#4E665B]">
+                  <span className="text-[#8DA397] block font-pixel text-[9px]">POS (x, y)</span>
+                  <span className="text-[#6FCF97] font-mono text-sm font-bold">
                     ({currentPos.x.toFixed(2)}, {currentPos.y.toFixed(2)})
                   </span>
                 </div>
-                <div className="bg-[#1e140e] p-2 border-2 border-[#382219]">
-                  <span className="text-[#a3b18a] block font-pixel text-[9px]">LOSS f(x,y)</span>
-                  <span className="text-[#fefae0] font-vt323 text-xl font-bold">
+                <div className="bg-[#182320] p-2.5 rounded-xl border border-[#4E665B]">
+                  <span className="text-[#8DA397] block font-pixel text-[9px]">LOSS f(x,y)</span>
+                  <span className="text-[#EAF4EE] font-mono text-sm font-bold">
                     {isFinite(currentLoss) ? currentLoss.toFixed(4) : "∞"}
                   </span>
                 </div>
-                <div className="bg-[#1e140e] p-2 border-2 border-[#382219]">
-                  <span className="text-[#a3b18a] block font-pixel text-[9px]">GRAD ||∇f||</span>
-                  <span className="text-[#dda15e] font-vt323 text-xl font-bold">
+                <div className="bg-[#182320] p-2.5 rounded-xl border border-[#4E665B]">
+                  <span className="text-[#8DA397] block font-pixel text-[9px]">GRAD ||∇f||</span>
+                  <span className="text-[#E9C46A] font-mono text-sm font-bold">
                     {gradNorm.toFixed(4)}
                   </span>
                 </div>
               </div>
 
               {/* Step info */}
-              <div className="bg-[#1e140e] p-2.5 border-2 border-[#382219] flex justify-between items-center text-lg">
-                <span className="text-[#a3b18a]">Total Steps Taken:</span>
-                <span className="text-[#dda15e] font-bold">{stepCount}</span>
+              <div className="bg-[#182320] p-3 rounded-xl border border-[#4E665B] flex justify-between items-center text-xs">
+                <span className="text-[#8DA397]">Total Steps Taken:</span>
+                <span className="text-[#6FCF97] font-mono font-bold">{stepCount}</span>
               </div>
             </div>
           </RetroPanel>
 
           {/* Theoretical Concept Note */}
-          <div className="bg-[#281b12] border-4 border-[#382219] p-3 shadow-[4px_4px_0px_0px_#0f0a07] text-xs text-[#a3b18a] leading-relaxed">
-            <p className="text-[#dda15e] font-pixel text-[9px] uppercase mb-1">
+          <div className="bg-[#2C3C35] border border-[#4E665B] p-4 rounded-2xl shadow-sm text-xs text-[#C9D7CF] leading-relaxed font-sans">
+            <p className="text-[#E9C46A] font-pixel text-[9px] uppercase mb-1">
               💡 Concept Note: 2D Loss Surface Choice
             </p>
             <p>
-              We chose a <strong>2D Bowl Loss Surface $f(x,y) = x^2 + y^2$</strong> because it maps parameter space directly to elevation contours. 
-              Small learning rates ($\eta \approx 0.10$) produce steady downhill convergence, while large learning rates ($\eta \ge 0.95$) overshoot the bowl walls and oscillate/diverge.
+              We chose a <strong>2D Bowl Loss Surface f(x,y) = x² + y²</strong> because it maps parameter space directly to elevation contours. 
+              Small learning rates (η ≈ 0.10) produce steady downhill convergence, while large learning rates (η ≥ 0.95) overshoot the bowl walls and oscillate/diverge.
             </p>
           </div>
         </div>

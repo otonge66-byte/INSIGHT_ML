@@ -23,6 +23,8 @@ import { neuralNetChallenge } from "@/lib/challenge/challenges";
 import { NNDataPoint, LayerWeightInfo, NetworkArchitecture } from "@/modules/neural-net/types";
 import type { TFType, TFModel } from "@/lib/ml/neural-net";
 
+import { BackButton } from "@/components/ui/BackButton";
+
 const GRID_RES = 40;
 const DEFAULT_ARCH: NetworkArchitecture = { hiddenSize: 4, numHiddenLayers: 1 };
 
@@ -38,11 +40,6 @@ const PRESET_POINTS: NNDataPoint[] = [
   { id: "p8", x:  0.7, y: -0.5, label: 0 },
 ];
 
-/**
- * Compute classification accuracy (0–100) by checking each data point
- * against the nearest cell in the model's prediction grid.
- * Grid covers [-1, 1] × [-1, 1] with `res × res` cells.
- */
 function computeNNAccuracy(
   pts: NNDataPoint[],
   grid: Float32Array | null,
@@ -62,11 +59,7 @@ function computeNNAccuracy(
   return Math.round((correct / pts.length) * 100);
 }
 
-// ── Overfitting Demo Dataset — fixed, noisy, 70/30 split ────────────────────
-// 20 training points: mostly separable (class 0 = top-left, class 1 = bottom-right)
-// with 4 deliberate outliers mixed in to create noise for the model to memorize.
 const OVERFIT_TRAIN: NNDataPoint[] = [
-  // clean class 0 (top-left region)
   { id: "t1",  x: -0.70, y:  0.65, label: 0 },
   { id: "t2",  x: -0.55, y:  0.80, label: 0 },
   { id: "t3",  x: -0.80, y:  0.40, label: 0 },
@@ -74,7 +67,6 @@ const OVERFIT_TRAIN: NNDataPoint[] = [
   { id: "t5",  x: -0.60, y:  0.30, label: 0 },
   { id: "t6",  x: -0.30, y:  0.70, label: 0 },
   { id: "t7",  x: -0.75, y:  0.15, label: 0 },
-  // clean class 1 (bottom-right region)
   { id: "t8",  x:  0.65, y: -0.70, label: 1 },
   { id: "t9",  x:  0.80, y: -0.55, label: 1 },
   { id: "t10", x:  0.40, y: -0.80, label: 1 },
@@ -82,17 +74,14 @@ const OVERFIT_TRAIN: NNDataPoint[] = [
   { id: "t12", x:  0.30, y: -0.60, label: 1 },
   { id: "t13", x:  0.70, y: -0.30, label: 1 },
   { id: "t14", x:  0.15, y: -0.75, label: 1 },
-  // outlier / noise points — wrong side of the natural boundary
-  { id: "t15", x:  0.25, y:  0.55, label: 1 }, // noise: class 1 in class-0 zone
-  { id: "t16", x: -0.20, y: -0.50, label: 0 }, // noise: class 0 in class-1 zone
-  { id: "t17", x:  0.05, y:  0.30, label: 1 }, // noise: near decision boundary, wrong
-  { id: "t18", x: -0.10, y: -0.35, label: 0 }, // noise: near boundary, wrong
-  { id: "t19", x:  0.45, y:  0.10, label: 1 }, // borderline noisy class 1
-  { id: "t20", x: -0.40, y: -0.15, label: 0 }, // borderline noisy class 0
+  { id: "t15", x:  0.25, y:  0.55, label: 1 },
+  { id: "t16", x: -0.20, y: -0.50, label: 0 },
+  { id: "t17", x:  0.05, y:  0.30, label: 1 },
+  { id: "t18", x: -0.10, y: -0.35, label: 0 },
+  { id: "t19", x:  0.45, y:  0.10, label: 1 },
+  { id: "t20", x: -0.40, y: -0.15, label: 0 },
 ];
 
-// 10 held-out test points — same general pattern but NOT seen during training.
-// These assess whether the model generalised or just memorised.
 const OVERFIT_TEST: NNDataPoint[] = [
   { id: "e1",  x: -0.85, y:  0.70, label: 0 },
   { id: "e2",  x: -0.50, y:  0.90, label: 0 },
@@ -101,9 +90,9 @@ const OVERFIT_TEST: NNDataPoint[] = [
   { id: "e5",  x:  0.85, y: -0.65, label: 1 },
   { id: "e6",  x:  0.60, y: -0.85, label: 1 },
   { id: "e7",  x:  0.50, y: -0.50, label: 1 },
-  { id: "e8",  x:  0.20, y:  0.45, label: 0 }, // generalisation test (should be 0)
-  { id: "e9",  x: -0.15, y: -0.40, label: 1 }, // generalisation test (should be 1)
-  { id: "e10", x:  0.10, y:  0.10, label: 0 }, // centre
+  { id: "e8",  x:  0.20, y:  0.45, label: 0 },
+  { id: "e9",  x: -0.15, y: -0.40, label: 1 },
+  { id: "e10", x:  0.10, y:  0.10, label: 0 },
 ];
 
 type AppMode = "select" | "story" | "sandbox" | "challenge" | "overfitting";
@@ -123,8 +112,8 @@ export default function NeuralNetPlayground() {
   const [tfReady, setTfReady] = useState(false);
   const [statusMsg, setStatusMsg] = useState("Loading TF.js...");
 
-  // ── Overfitting Demo state ─────────────────────────────────────────────────
-  const [ovNodes, setOvNodes] = useState(4); // nodes per hidden layer for overfit demo
+  // Overfitting Demo state
+  const [ovNodes, setOvNodes] = useState(4);
   const [ovPredGrid, setOvPredGrid] = useState<Float32Array | null>(null);
   const [ovStepCount, setOvStepCount] = useState(0);
   const [ovIsTraining, setOvIsTraining] = useState(false);
@@ -132,22 +121,16 @@ export default function NeuralNetPlayground() {
   const ovModelRef = useRef<TFModel | null>(null);
   const ovIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Refs for mutable TF objects — never stored in React state to avoid serialisation
   const tfRef = useRef<TFType | null>(null);
   const modelRef = useRef<TFModel | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const isTrainingRef = useRef(false);
 
-  // Story mode controller
   const story = useStoryMode();
-
-  // Challenge mode controller
   const challenge = useChallengeMode(neuralNetChallenge);
 
-  // Keep isTrainingRef in sync
   useEffect(() => { isTrainingRef.current = isTraining; }, [isTraining]);
 
-  // ── Load TF.js dynamically (client only) ──────────────────────────────────
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -164,16 +147,13 @@ export default function NeuralNetPlayground() {
     return () => { cancelled = true; };
   }, []);
 
-  // ── Build / rebuild model ─────────────────────────────────────────────────
   const buildNewModel = useCallback(() => {
     const tf = tfRef.current;
     if (!tf) return;
-    // Dispose old model
     if (modelRef.current) {
       modelRef.current.dispose();
       modelRef.current = null;
     }
-    // Import synchronously — already loaded at this point
     const { buildModel } = require("@/lib/ml/neural-net");
     const m = buildModel(tf, architecture, learningRate);
     modelRef.current = m;
@@ -184,13 +164,10 @@ export default function NeuralNetPlayground() {
     setIsTraining(false);
   }, [architecture, learningRate]);
 
-  // Build initial model when TF is ready
   useEffect(() => {
     if (tfReady) buildNewModel();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tfReady]);
+  }, [tfReady, buildNewModel]);
 
-  // ── Single train step ─────────────────────────────────────────────────────
   const doTrainStep = useCallback(async () => {
     const tf = tfRef.current;
     const model = modelRef.current;
@@ -210,7 +187,6 @@ export default function NeuralNetPlayground() {
     story.registerAction("nn-train");
   }, [points, stepCount, story]);
 
-  // ── Continuous training interval ──────────────────────────────────────────
   useEffect(() => {
     if (isTraining) {
       intervalRef.current = setInterval(() => {
@@ -222,7 +198,6 @@ export default function NeuralNetPlayground() {
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, [isTraining, doTrainStep]);
 
-  // ── Add / remove points ───────────────────────────────────────────────────
   const handleAddPoint = (p: NNDataPoint) => setPoints((prev) => [...prev, p]);
 
   const handleClear = () => {
@@ -246,12 +221,10 @@ export default function NeuralNetPlayground() {
     story.registerAction("nn-load-preset");
   };
 
-  // ── Arch change — rebuild model ───────────────────────────────────────────
   const handleArchChange = (newArch: Partial<NetworkArchitecture>) => {
     setIsTraining(false);
     setArchitecture((prev) => {
       const next = { ...prev, ...newArch };
-      // schedule model rebuild after state settles
       setTimeout(() => {
         if (!tfRef.current) return;
         if (modelRef.current) modelRef.current.dispose();
@@ -266,7 +239,6 @@ export default function NeuralNetPlayground() {
     });
   };
 
-  // ── LR change — recompile ─────────────────────────────────────────────────
   const handleLRChange = (lr: number) => {
     setLearningRate(lr);
     const tf = tfRef.current;
@@ -278,7 +250,6 @@ export default function NeuralNetPlayground() {
     });
   };
 
-  // ── Cleanup on unmount ────────────────────────────────────────────────────
   useEffect(() => {
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
@@ -288,13 +259,11 @@ export default function NeuralNetPlayground() {
     };
   }, []);
 
-  // ── Overfitting Demo — build model ───────────────────────────────────────
   const buildOvModel = useCallback((nodes: number) => {
     const tf = tfRef.current;
     if (!tf) return;
     if (ovModelRef.current) { ovModelRef.current.dispose(); ovModelRef.current = null; }
     const { buildModel } = require("@/lib/ml/neural-net");
-    // Use 2 hidden layers to allow more overfitting at high node counts
     ovModelRef.current = buildModel(tf, { hiddenSize: nodes, numHiddenLayers: 2 }, 0.05);
     setOvPredGrid(null);
     setOvStepCount(0);
@@ -302,7 +271,6 @@ export default function NeuralNetPlayground() {
     setOvIsTraining(false);
   }, []);
 
-  // ── Overfitting Demo — single train step ─────────────────────────────────
   const doOvTrainStep = useCallback(async () => {
     const tf = tfRef.current;
     const model = ovModelRef.current;
@@ -315,7 +283,6 @@ export default function NeuralNetPlayground() {
     setOvStepCount((s) => s + 1);
   }, []);
 
-  // ── Overfitting Demo — auto-train loop ───────────────────────────────────
   useEffect(() => {
     if (ovIsTraining) {
       ovIntervalRef.current = setInterval(() => { doOvTrainStep(); }, 150);
@@ -325,22 +292,17 @@ export default function NeuralNetPlayground() {
     return () => { if (ovIntervalRef.current) clearInterval(ovIntervalRef.current); };
   }, [ovIsTraining, doOvTrainStep]);
 
-  // ── Overfitting Demo — node count change ─────────────────────────────────
   const handleOvNodeChange = (n: number) => {
     setOvIsTraining(false);
     setOvNodes(n);
-    // Small delay to let stop propagate before rebuilding
     setTimeout(() => buildOvModel(n), 50);
   };
 
-  // ── Overfitting Demo — enter mode ────────────────────────────────────────
   const enterOverfittingMode = () => {
     setAppMode("overfitting");
-    // Ensure TF model is built when entering
     setTimeout(() => buildOvModel(ovNodes), 100);
   };
 
-  // ── Mode selection handlers ───────────────────────────────────────────────
   const enterStoryMode = () => {
     setAppMode("story");
     story.start(neuralNetWalkthrough);
@@ -354,7 +316,6 @@ export default function NeuralNetPlayground() {
   const enterChallengeMode = () => {
     setAppMode("challenge");
     challenge.reset();
-    // Set architecture to 2 nodes / 1 layer for the challenge
     setIsTraining(false);
     setPoints(PRESET_POINTS);
     setArchitecture({ hiddenSize: 2, numHiddenLayers: 1 });
@@ -362,7 +323,6 @@ export default function NeuralNetPlayground() {
     setPredGrid(null);
     setStepCount(0);
     setStatusMsg("Challenge: Solve XOR with 2 nodes. Train away!");
-    // Rebuild model with the challenge architecture after state settles
     setTimeout(() => {
       if (!tfRef.current) return;
       if (modelRef.current) modelRef.current.dispose();
@@ -372,14 +332,12 @@ export default function NeuralNetPlayground() {
     }, 0);
   };
 
-  // When story finishes go to sandbox
   useEffect(() => {
     if (appMode === "story" && !story.state.isActive) {
       setAppMode("sandbox");
     }
   }, [appMode, story.state.isActive]);
 
-  // ── Challenge progress tracking ───────────────────────────────────────────
   const nnAccuracy = computeNNAccuracy(points, predGrid, GRID_RES);
 
   useEffect(() => {
@@ -392,8 +350,7 @@ export default function NeuralNetPlayground() {
         numHiddenLayers: architecture.numHiddenLayers,
       });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [appMode, stepCount, nnAccuracy]);
+  }, [appMode, stepCount, nnAccuracy, challenge, lossHistory, architecture]);
 
   const handleChallengeRetry = () => {
     challenge.reset();
@@ -422,103 +379,99 @@ export default function NeuralNetPlayground() {
   // ── Mode Selection Screen ─────────────────────────────────────────────────
   if (appMode === "select") {
     return (
-      <main className="min-h-screen bg-[#1e140e] text-[#fefae0] flex flex-col items-center justify-center p-8 font-vt323">
-        <nav className="fixed top-4 right-4 flex items-center gap-2 z-10">
-          <Link href="/"
-            className="px-3 py-1.5 bg-[#1e140e] hover:bg-[#281b12] text-[#5c3d2e] hover:text-[#a3b18a] font-pixel text-[10px] uppercase border-2 border-[#2e1e14] shadow-[2px_2px_0px_0px_#0f0a07] transition-colors">
-            ← Dashboard
-          </Link>
+      <main className="min-h-screen bg-[#182320] text-[#C9D7CF] flex flex-col items-center justify-center p-6 md:p-8 font-sans relative">
+        <div className="fixed top-4 left-4 z-30">
+          <BackButton href="/" label="Back to Dashboard" />
+        </div>
+
+        <nav className="fixed top-4 right-4 flex items-center gap-2 z-10 font-sans">
           <Link href="/playground/perceptron"
-            className="px-3 py-1.5 bg-[#3e271c] hover:bg-[#5c3d2e] text-[#a3b18a] font-pixel text-[10px] uppercase border-2 border-[#1e140e] shadow-[2px_2px_0px_0px_#0f0a07] transition-colors">
+            className="px-3 py-1.5 bg-[#22302B] hover:bg-[#2C3C35] text-[#C9D7CF] font-pixel text-[10px] uppercase border border-[#4E665B] rounded-xl transition-colors">
             01. Perceptron
           </Link>
           <Link href="/playground/gradient-descent"
-            className="px-3 py-1.5 bg-[#3e271c] hover:bg-[#5c3d2e] text-[#a3b18a] font-pixel text-[10px] uppercase border-2 border-[#1e140e] shadow-[2px_2px_0px_0px_#0f0a07] transition-colors">
+            className="px-3 py-1.5 bg-[#22302B] hover:bg-[#2C3C35] text-[#C9D7CF] font-pixel text-[10px] uppercase border border-[#4E665B] rounded-xl transition-colors">
             02. Gradient Descent
           </Link>
           <Link href="/playground/neural-net"
-            className="px-3 py-1.5 bg-[#386641] text-[#fefae0] font-pixel text-[10px] uppercase border-2 border-[#1b3521] shadow-[2px_2px_0px_0px_#0f0a07]">
+            className="px-3 py-1.5 bg-[#2C3C35] text-[#6FCF97] font-pixel text-[10px] uppercase border border-[#4E665B] rounded-xl">
             03. Neural Net
           </Link>
         </nav>
 
         <div className="max-w-3xl w-full text-center flex flex-col items-center gap-8">
           <div>
-            <span className="bg-[#bc4749] text-[#fefae0] font-pixel text-[10px] uppercase px-2 py-1 border border-[#6b2123] inline-block mb-4">
+            <span className="bg-[#2C3C35] text-[#6FCF97] font-pixel text-[10px] uppercase px-3 py-1 rounded-full border border-[#4E665B] font-bold inline-block mb-4">
               Module 03
             </span>
-            <h1 className="text-3xl font-pixel text-[#dda15e] uppercase tracking-wider mb-2">
+            <h1 className="text-2xl sm:text-3xl font-pixel text-[#EAF4EE] uppercase tracking-wider mb-2">
               Neural Net Visualizer
             </h1>
-            <p className="text-[#a3b18a] text-xl">Choose your experience:</p>
+            <p className="text-[#8DA397] text-sm font-sans">Choose your learning mode:</p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 w-full">
-            {/* Story Mode card */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full font-sans">
             <button
               onClick={enterStoryMode}
-              className="group bg-[#281b12] border-4 border-[#386641] shadow-[6px_6px_0px_0px_#0f0a07] p-6 text-left flex flex-col gap-3 hover:bg-[#2e2214] hover:-translate-y-1 transition-all active:translate-y-0 active:shadow-[2px_2px_0px_0px_#0f0a07]"
+              className="group bg-[#2C3C35] hover:bg-[#33463E] border border-[#4E665B] rounded-2xl p-5 text-left flex flex-col gap-3 shadow-sm hover:-translate-y-0.5 hover:scale-[1.01] transition-all duration-200"
             >
-              <div className="text-4xl">📖</div>
+              <div className="text-3xl">📖</div>
               <div>
-                <h2 className="font-pixel text-[12px] text-[#dda15e] uppercase mb-2">Story Mode</h2>
-                <p className="text-[#a3b18a] text-lg leading-snug">
+                <h2 className="font-pixel text-xs text-[#EAF4EE] uppercase mb-1.5">Story Mode</h2>
+                <p className="text-[#C9D7CF] text-xs leading-relaxed">
                   Guided walkthrough with BYTE. Discover why XOR needs hidden layers.
                 </p>
               </div>
-              <span className="font-pixel text-[10px] text-[#386641] border border-[#386641] px-2 py-1 self-start">
+              <span className="font-pixel text-[9px] text-[#6FCF97] border border-[#4E665B] bg-[#22302B] px-2 py-1 rounded-lg self-start mt-auto">
                 ▶ START TUTORIAL
               </span>
             </button>
 
-            {/* Challenge Mode card */}
             <button
               onClick={enterChallengeMode}
-              className="group bg-[#281b12] border-4 border-[#dda15e] shadow-[6px_6px_0px_0px_#0f0a07] p-6 text-left flex flex-col gap-3 hover:bg-[#2e2214] hover:-translate-y-1 transition-all active:translate-y-0 active:shadow-[2px_2px_0px_0px_#0f0a07]"
+              className="group bg-[#2C3C35] hover:bg-[#33463E] border border-[#4E665B] rounded-2xl p-5 text-left flex flex-col gap-3 shadow-sm hover:-translate-y-0.5 hover:scale-[1.01] transition-all duration-200"
             >
-              <div className="text-4xl">🏆</div>
+              <div className="text-3xl">🏆</div>
               <div>
-                <h2 className="font-pixel text-[12px] text-[#dda15e] uppercase mb-2">Challenge Mode</h2>
-                <p className="text-[#a3b18a] text-lg leading-snug">
+                <h2 className="font-pixel text-xs text-[#EAF4EE] uppercase mb-1.5">Challenge Mode</h2>
+                <p className="text-[#C9D7CF] text-xs leading-relaxed">
                   &quot;{neuralNetChallenge.title}&quot; — {neuralNetChallenge.goalSummary}
                 </p>
               </div>
-              <span className="font-pixel text-[10px] text-[#dda15e] border border-[#dda15e] px-2 py-1 self-start">
+              <span className="font-pixel text-[9px] text-[#E9C46A] border border-[#4E665B] bg-[#22302B] px-2 py-1 rounded-lg self-start mt-auto">
                 ▶ START CHALLENGE
               </span>
             </button>
 
-            {/* Sandbox Mode card */}
             <button
               onClick={enterSandboxMode}
-              className="group bg-[#281b12] border-4 border-[#382219] shadow-[6px_6px_0px_0px_#0f0a07] p-6 text-left flex flex-col gap-3 hover:bg-[#2e2214] hover:-translate-y-1 transition-all active:translate-y-0 active:shadow-[2px_2px_0px_0px_#0f0a07]"
+              className="group bg-[#2C3C35] hover:bg-[#33463E] border border-[#4E665B] rounded-2xl p-5 text-left flex flex-col gap-3 shadow-sm hover:-translate-y-0.5 hover:scale-[1.01] transition-all duration-200"
             >
-              <div className="text-4xl">🔬</div>
+              <div className="text-3xl">🔬</div>
               <div>
-                <h2 className="font-pixel text-[12px] text-[#dda15e] uppercase mb-2">Sandbox Mode</h2>
-                <p className="text-[#a3b18a] text-lg leading-snug">
-                  Adjust layers, nodes, and learning rate freely. Full control.
+                <h2 className="font-pixel text-xs text-[#EAF4EE] uppercase mb-1.5">Sandbox Mode</h2>
+                <p className="text-[#C9D7CF] text-xs leading-relaxed">
+                  Adjust layers, nodes, and learning rate freely.
                 </p>
               </div>
-              <span className="font-pixel text-[10px] text-[#a3b18a] border border-[#382219] px-2 py-1 self-start">
+              <span className="font-pixel text-[9px] text-[#8DA397] border border-[#4E665B] bg-[#22302B] px-2 py-1 rounded-lg self-start mt-auto">
                 ▶ FREE EXPLORE
               </span>
             </button>
 
-            {/* Overfitting Demo card */}
             <button
               onClick={enterOverfittingMode}
-              className="group bg-[#281b12] border-4 border-[#bc4749] shadow-[6px_6px_0px_0px_#0f0a07] p-6 text-left flex flex-col gap-3 hover:bg-[#2e1a14] hover:-translate-y-1 transition-all active:translate-y-0 active:shadow-[2px_2px_0px_0px_#0f0a07]"
+              className="group bg-[#2C3C35] hover:bg-[#33463E] border border-[#4E665B] rounded-2xl p-5 text-left flex flex-col gap-3 shadow-sm hover:-translate-y-0.5 hover:scale-[1.01] transition-all duration-200"
             >
-              <div className="text-4xl">📊</div>
+              <div className="text-3xl">📊</div>
               <div>
-                <h2 className="font-pixel text-[12px] text-[#bc4749] uppercase mb-2">Overfitting Demo</h2>
-                <p className="text-[#a3b18a] text-lg leading-snug">
-                  Watch a model memorise noise. See training vs test accuracy diverge as complexity grows.
+                <h2 className="font-pixel text-xs text-[#EAF4EE] uppercase mb-1.5">Overfitting Demo</h2>
+                <p className="text-[#C9D7CF] text-xs leading-relaxed">
+                  Watch a model memorise noise vs generalization.
                 </p>
               </div>
-              <span className="font-pixel text-[10px] text-[#bc4749] border border-[#6b2123] px-2 py-1 self-start">
-                ▶ EXPLORE OVERFITTING
+              <span className="font-pixel text-[9px] text-[#D96C6C] border border-[#4E665B] bg-[#22302B] px-2 py-1 rounded-lg self-start mt-auto">
+                ▶ OVERFITTING DEMO
               </span>
             </button>
           </div>
@@ -534,55 +487,49 @@ export default function NeuralNetPlayground() {
     const ovGap      = ovTrainAcc - ovTestAcc;
     const showByteAlert = ovStepCount > 30 && ovGap >= 15;
 
-    // Combined point list for NeuralNetCanvas (train = solid, test overlaid with SVG hollow circles)
-    const allOvPoints: NNDataPoint[] = [...OVERFIT_TRAIN, ...OVERFIT_TEST];
-
     return (
-      <main className="min-h-screen bg-[#1e140e] text-[#fefae0] p-4 md:p-8 font-vt323 selection:bg-[#dda15e] selection:text-[#1e140e]">
-        {/* Header */}
-        <header className="max-w-7xl mx-auto mb-6 bg-[#281b12] border-4 border-[#382219] p-4 shadow-[6px_6px_0px_0px_#0f0a07] flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <main className="min-h-screen bg-[#182320] text-[#C9D7CF] p-4 md:p-8 font-sans selection:bg-[#6FCF97] selection:text-[#182320]">
+        <header className="max-w-7xl mx-auto mb-6 bg-[#22302B] border border-[#4E665B] p-4 sm:p-5 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-3">
-              <span className="bg-[#bc4749] text-[#fefae0] font-pixel text-[10px] uppercase px-2 py-1 border border-[#6b2123]">
+              <span className="bg-[#2C3C35] text-[#D96C6C] font-pixel text-[10px] uppercase px-2.5 py-1 rounded-lg border border-[#4E665B]">
                 Module 03
               </span>
-              <h1 className="text-2xl md:text-3xl font-pixel text-[#dda15e] tracking-wider uppercase">
+              <h1 className="text-lg md:text-xl font-pixel text-[#EAF4EE] tracking-wide uppercase">
                 Overfitting Demo
               </h1>
               <button
                 onClick={() => { setOvIsTraining(false); setAppMode("select"); }}
-                className="text-[#bc4749] hover:text-[#dda15e] font-pixel text-[10px] border border-[#6b2123] px-2 py-1 transition-colors"
+                className="bg-[#2C3C35] text-[#D96C6C] hover:bg-[#33463E] font-pixel text-[10px] border border-[#4E665B] px-2.5 py-1 rounded-lg transition-colors"
               >
                 DEMO ↺
               </button>
             </div>
-            <p className="text-[#a3b18a] text-lg mt-1 font-vt323">
+            <p className="text-[#8DA397] text-xs mt-1 font-sans">
               Training Set (●) vs Test Set (◯) • Watch accuracy diverge as model complexity grows
             </p>
           </div>
-          <nav className="flex items-center gap-2">
+          <nav className="flex items-center gap-2 font-sans">
             <Link href="/"
-              className="px-3 py-1.5 bg-[#1e140e] hover:bg-[#281b12] text-[#5c3d2e] hover:text-[#a3b18a] font-pixel text-[10px] uppercase border-2 border-[#2e1e14] shadow-[2px_2px_0px_0px_#0f0a07] transition-colors">
+              className="px-3 py-1.5 bg-[#22302B] hover:bg-[#2C3C35] text-[#C9D7CF] font-pixel text-[10px] uppercase border border-[#4E665B] rounded-xl transition-colors">
               ← Dashboard
             </Link>
             <Link href="/playground/perceptron"
-              className="px-3 py-1.5 bg-[#3e271c] hover:bg-[#5c3d2e] text-[#a3b18a] font-pixel text-[10px] uppercase border-2 border-[#1e140e] shadow-[2px_2px_0px_0px_#0f0a07] transition-colors">
+              className="px-3 py-1.5 bg-[#22302B] hover:bg-[#2C3C35] text-[#C9D7CF] font-pixel text-[10px] uppercase border border-[#4E665B] rounded-xl transition-colors">
               01. Perceptron
             </Link>
             <Link href="/playground/gradient-descent"
-              className="px-3 py-1.5 bg-[#3e271c] hover:bg-[#5c3d2e] text-[#a3b18a] font-pixel text-[10px] uppercase border-2 border-[#1e140e] shadow-[2px_2px_0px_0px_#0f0a07] transition-colors">
-              02. Gradient Descent
+              className="px-3 py-1.5 bg-[#22302B] hover:bg-[#2C3C35] text-[#C9D7CF] font-pixel text-[10px] uppercase border border-[#4E665B] rounded-xl transition-colors">
+              02. Gradient
             </Link>
             <Link href="/playground/neural-net"
-              className="px-3 py-1.5 bg-[#386641] text-[#fefae0] font-pixel text-[10px] uppercase border-2 border-[#1b3521] shadow-[2px_2px_0px_0px_#0f0a07]">
+              className="px-3 py-1.5 bg-[#2C3C35] text-[#6FCF97] font-pixel text-[10px] uppercase border border-[#4E665B] rounded-xl">
               03. Neural Net
             </Link>
           </nav>
         </header>
 
         <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-
-          {/* Left: Canvas with train (●) and test (◯) overlay */}
           <div className="lg:col-span-7 flex flex-col gap-4">
             <div className="relative inline-block">
               <NeuralNetCanvas
@@ -590,11 +537,10 @@ export default function NeuralNetPlayground() {
                 predictionGrid={ovPredGrid}
                 gridRes={GRID_RES}
                 layerWeights={[]}
-                onAddPoint={() => {}} // read-only in demo mode
+                onAddPoint={() => {}}
                 width={560}
                 height={560}
               />
-              {/* SVG overlay: test points rendered as distinct hollow circles */}
               <svg
                 className="absolute top-0 left-0 pointer-events-none"
                 width={560}
@@ -604,19 +550,17 @@ export default function NeuralNetPlayground() {
                 {OVERFIT_TEST.map((p) => {
                   const cx = ((p.x + 1) / 2) * 560;
                   const cy = ((1 - p.y) / 2) * 560;
-                  const strokeColor = p.label === 1 ? "#bc4749" : "#386641";
+                  const strokeColor = p.label === 1 ? "#D96C6C" : "#6FCF97";
                   return (
                     <g key={p.id}>
-                      {/* Outer hollow ring */}
                       <circle
                         cx={cx}
                         cy={cy}
                         r={9}
-                        fill="#18110b"
+                        fill="#182320"
                         stroke={strokeColor}
-                        strokeWidth={3}
+                        strokeWidth={2.5}
                       />
-                      {/* Inner text symbol */}
                       <text
                         x={cx}
                         y={cy + 1}
@@ -635,127 +579,87 @@ export default function NeuralNetPlayground() {
               </svg>
             </div>
 
-            {/* Legend */}
-            <div className="flex items-center gap-6 text-lg font-vt323">
+            <div className="flex items-center gap-6 text-xs font-sans text-[#8DA397]">
               <div className="flex items-center gap-2">
-                <span className="inline-block w-3 h-3 rounded-full bg-[#dda15e]" />
-                <span className="text-[#a3b18a]">Train Class 1 (●)</span>
+                <span className="inline-block w-3 h-3 rounded-full bg-[#D96C6C]" />
+                <span>Train Class 1 (●)</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="inline-block w-3 h-3 rounded-full bg-[#a3b18a]" />
-                <span className="text-[#a3b18a]">Train Class 0 (●)</span>
+                <span className="inline-block w-3 h-3 rounded-full bg-[#6FCF97]" />
+                <span>Train Class 0 (●)</span>
               </div>
               <div className="flex items-center gap-2">
-                <svg width="14" height="14" viewBox="0 0 14 14"><circle cx="7" cy="7" r="5" fill="none" stroke="#dda15e" strokeWidth="2"/></svg>
-                <span className="text-[#a3b18a]">Test pts (◯)</span>
+                <svg width="14" height="14" viewBox="0 0 14 14"><circle cx="7" cy="7" r="5" fill="none" stroke="#E9C46A" strokeWidth="2"/></svg>
+                <span>Test pts (◯)</span>
               </div>
             </div>
           </div>
 
-          {/* Right: Controls + Dual Accuracy + BYTE alert */}
           <div className="lg:col-span-5 flex flex-col gap-5">
-
-            {/* ── Dual Accuracy Readout ── */}
-            <div className="bg-[#281b12] border-4 border-[#382219] p-4 shadow-[4px_4px_0px_0px_#0f0a07]">
-              <p className="font-pixel text-[9px] text-[#a3b18a] uppercase mb-3 tracking-wider">Live Accuracy Comparison</p>
+            <div className="bg-[#2C3C35] border border-[#4E665B] p-4 rounded-2xl shadow-sm">
+              <p className="font-pixel text-[9px] text-[#8DA397] uppercase mb-3 tracking-wider">Live Accuracy Comparison</p>
               <div className="grid grid-cols-2 gap-3">
-                {/* Training Accuracy */}
-                <div className="bg-[#1e140e] border-2 border-[#4a7c59] p-3 text-center">
-                  <p className="font-pixel text-[8px] text-[#4a7c59] uppercase mb-1">Training Acc</p>
-                  <p className={`font-vt323 text-4xl ${
-                    ovPredGrid === null ? "text-[#5c3d2e]" :
-                    ovTrainAcc >= 90 ? "text-[#7ecb8a]" :
-                    ovTrainAcc >= 70 ? "text-[#dda15e]" : "text-[#bc4749]"
-                  }`}>
+                <div className="bg-[#182320] border border-[#4E665B] p-3 rounded-xl text-center">
+                  <p className="font-pixel text-[8px] text-[#6FCF97] uppercase mb-1">Training Acc</p>
+                  <p className="font-mono text-2xl font-bold text-[#6FCF97]">
                     {ovPredGrid === null ? "—" : `${ovTrainAcc}%`}
                   </p>
-                  {/* Mini bar */}
-                  <div className="w-full h-1.5 bg-[#1a0d0e] mt-2">
-                    <div
-                      className="h-full bg-[#4a7c59] transition-all duration-300"
-                      style={{ width: `${ovPredGrid === null ? 0 : ovTrainAcc}%` }}
-                    />
-                  </div>
                 </div>
 
-                {/* Test Accuracy */}
-                <div className="bg-[#1e140e] border-2 border-[#bc4749] p-3 text-center">
-                  <p className="font-pixel text-[8px] text-[#bc4749] uppercase mb-1">Test Acc</p>
-                  <p className={`font-vt323 text-4xl ${
-                    ovPredGrid === null ? "text-[#5c3d2e]" :
-                    ovTestAcc >= 80 ? "text-[#7ecb8a]" :
-                    ovTestAcc >= 60 ? "text-[#dda15e]" : "text-[#bc4749]"
-                  }`}>
+                <div className="bg-[#182320] border border-[#4E665B] p-3 rounded-xl text-center">
+                  <p className="font-pixel text-[8px] text-[#D96C6C] uppercase mb-1">Test Acc</p>
+                  <p className="font-mono text-2xl font-bold text-[#D96C6C]">
                     {ovPredGrid === null ? "—" : `${ovTestAcc}%`}
                   </p>
-                  {/* Mini bar */}
-                  <div className="w-full h-1.5 bg-[#1a0d0e] mt-2">
-                    <div
-                      className="h-full bg-[#bc4749] transition-all duration-300"
-                      style={{ width: `${ovPredGrid === null ? 0 : ovTestAcc}%` }}
-                    />
-                  </div>
                 </div>
               </div>
 
-              {/* Gap indicator */}
               {ovPredGrid && (
-                <div className="mt-3 flex items-center justify-between border-t border-[#382219] pt-2">
-                  <span className="font-pixel text-[8px] text-[#5c3d2e] uppercase">Train/Test Gap</span>
-                  <span className={`font-vt323 text-xl ${
-                    ovGap <= 5 ? "text-[#7ecb8a]" :
-                    ovGap <= 15 ? "text-[#dda15e]" : "text-[#bc4749]"
-                  }`}>
+                <div className="mt-3 flex items-center justify-between border-t border-[#4E665B]/60 pt-2 font-sans text-xs">
+                  <span className="text-[#8DA397]">Train/Test Gap</span>
+                  <span className="font-mono font-bold text-[#E9C46A]">
                     {ovGap >= 0 ? "+" : ""}{ovGap}%
                   </span>
                 </div>
               )}
             </div>
 
-            {/* ── BYTE Alert: overfitting detected ── */}
             {showByteAlert && (
-              <div className="bg-[#1e140e] border-4 border-[#bc4749] p-4 shadow-[4px_4px_0px_0px_#0f0a07] animate-pulse-once">
-                <div className="flex items-start gap-3">
-                  <div className="flex-shrink-0 text-3xl">🤖</div>
+              <div className="bg-[#22302B] border border-[#D96C6C]/60 p-4 rounded-2xl shadow-sm">
+                <div className="flex items-start gap-3 font-sans">
+                  <div className="flex-shrink-0 text-2xl">🤖</div>
                   <div>
-                    <p className="font-pixel text-[9px] text-[#bc4749] uppercase mb-1">BYTE says — Overfitting Detected!</p>
-                    <p className="text-[#fefae0] text-lg leading-snug">
-                      Training accuracy is high but test accuracy isn&apos;t improving — this is <span className="text-[#bc4749]">overfitting</span>.
+                    <p className="font-pixel text-[9px] text-[#D96C6C] uppercase mb-1">BYTE says — Overfitting Detected!</p>
+                    <p className="text-[#EAF4EE] text-xs leading-relaxed">
+                      Training accuracy is high but test accuracy isn&apos;t improving — this is <span className="text-[#D96C6C]">overfitting</span>.
                     </p>
-                    <p className="text-[#a3b18a] text-base mt-1 leading-snug">
-                      The model is memorising the noisy training points instead of learning the general pattern. Try fewer nodes to see the gap shrink!
-                    </p>
-                    <p className="font-pixel text-[8px] text-[#5c3d2e] mt-2 uppercase">Gap: +{ovGap}% • Nodes: {ovNodes} • Steps: {ovStepCount}</p>
                   </div>
                 </div>
               </div>
             )}
 
-            {/* ── Node Count Control ── */}
-            <RetroPanel title="Hidden Nodes per Layer" borderColor="border-[#382219]">
+            <RetroPanel title="Hidden Nodes per Layer" borderColor="border-[#4E665B]">
               <div className="flex flex-col gap-3">
-                <p className="text-[#5c3d2e] text-base leading-snug">
+                <p className="text-[#8DA397] text-xs leading-relaxed font-sans">
                   More nodes → more capacity → easier to memorise noise. Try 2 vs 16.
                 </p>
                 <div className="grid grid-cols-4 gap-2">
                   {[2, 4, 8, 16].map((n) => (
                     <button key={n}
                       onClick={() => handleOvNodeChange(n)}
-                      className={`font-pixel text-[10px] uppercase py-2 border-2 transition-all ${
+                      className={`font-pixel text-[10px] uppercase py-2 rounded-xl border transition-all ${
                         ovNodes === n
-                          ? "bg-[#bc4749] text-[#fefae0] border-[#6b2123] shadow-[2px_2px_0px_0px_#0f0a07]"
-                          : "bg-[#1e140e] text-[#a3b18a] border-[#382219] hover:bg-[#281b12]"
+                          ? "bg-[#2C3C35] text-[#6FCF97] border-[#6FCF97]"
+                          : "bg-[#182320] text-[#8DA397] border-[#4E665B] hover:bg-[#2C3C35]"
                       }`}
                     >
                       {n}
                     </button>
                   ))}
                 </div>
-                <p className="font-pixel text-[8px] text-[#3e271c] uppercase">2 hidden layers • Adam 0.05 lr</p>
               </div>
             </RetroPanel>
 
-            {/* ── Train Controls ── */}
             <div className="grid grid-cols-3 gap-3">
               <RetroButton variant="primary" onClick={doOvTrainStep} disabled={!tfReady}>
                 Step
@@ -772,40 +676,9 @@ export default function NeuralNetPlayground() {
               </RetroButton>
             </div>
 
-            {/* ── Stats row ── */}
-            <div className="grid grid-cols-3 gap-2 text-center">
-              <div className="bg-[#1e140e] p-2 border-2 border-[#382219]">
-                <span className="text-[#a3b18a] block font-pixel text-[8px]">STEPS</span>
-                <span className="text-[#dda15e] font-vt323 text-2xl">{ovStepCount}</span>
-              </div>
-              <div className="bg-[#1e140e] p-2 border-2 border-[#382219]">
-                <span className="text-[#a3b18a] block font-pixel text-[8px]">TRAIN PTS</span>
-                <span className="text-[#fefae0] font-vt323 text-2xl">20</span>
-              </div>
-              <div className="bg-[#1e140e] p-2 border-2 border-[#382219]">
-                <span className="text-[#a3b18a] block font-pixel text-[8px]">TEST PTS</span>
-                <span className="text-[#fefae0] font-vt323 text-2xl">9</span>
-              </div>
-            </div>
-
-            {/* Loss Chart */}
-            <RetroPanel title="Training Loss" borderColor="border-[#382219]">
+            <RetroPanel title="Training Loss" borderColor="border-[#4E665B]">
               <LossChart lossHistory={ovLossHistory} />
             </RetroPanel>
-
-            {/* Concept note */}
-            <div className="bg-[#281b12] border-4 border-[#382219] p-3 shadow-[4px_4px_0px_0px_#0f0a07] text-lg text-[#a3b18a] leading-relaxed">
-              <p className="text-[#dda15e] font-pixel text-[9px] uppercase mb-1">💡 The Overfitting Intuition</p>
-              <p>
-                A model with too many parameters can draw <em>arbitrarily complex</em> boundaries that perfectly fit training noise.
-                This is called <em>overfitting</em> — the model memorises rather than generalises.
-                The test set reveals this: its accuracy lags or even falls as training accuracy climbs to 100%.
-              </p>
-              <p className="mt-2 text-[#5c3d2e]">
-                Solution: reduce model capacity, add dropout, use regularisation, or collect more data.
-              </p>
-            </div>
-
           </div>
         </div>
       </main>
@@ -814,66 +687,64 @@ export default function NeuralNetPlayground() {
 
   // ── Shared Playground UI ──────────────────────────────────────────────────
   return (
-    <main className="min-h-screen bg-[#1e140e] text-[#fefae0] p-4 md:p-8 font-vt323 selection:bg-[#dda15e] selection:text-[#1e140e]">
-      {/* ── Header & Module Tabs ─────────────────────────────────────── */}
-      <header className="max-w-7xl mx-auto mb-6 bg-[#281b12] border-4 border-[#382219] p-4 shadow-[6px_6px_0px_0px_#0f0a07] flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-3">
-            <span className="bg-[#bc4749] text-[#fefae0] font-pixel text-[10px] uppercase px-2 py-1 border border-[#6b2123]">
-              Module 03
-            </span>
-            <h1 className="text-2xl md:text-3xl font-pixel text-[#dda15e] tracking-wider uppercase">
-              Neural Net Visualizer
-            </h1>
-            {/* Mode badge */}
-            {appMode === "story" ? (
-              <span className="bg-[#dda15e] text-[#1e140e] font-pixel text-[10px] px-2 py-1 border border-[#7a5225]">
-                STORY MODE
+    <main className="min-h-screen bg-[#182320] text-[#C9D7CF] p-4 md:p-8 font-sans selection:bg-[#6FCF97] selection:text-[#182320]">
+      <header className="max-w-7xl mx-auto mb-6 bg-[#22302B] border border-[#4E665B] p-4 sm:p-5 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <BackButton href="/" label="Back to Dashboard" />
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="bg-[#2C3C35] text-[#6FCF97] font-pixel text-[10px] uppercase px-2.5 py-1 rounded-lg border border-[#4E665B]">
+                Module 03
               </span>
-            ) : appMode === "challenge" ? (
-              <button
-                onClick={() => { challenge.reset(); setAppMode("select"); }}
-                className="text-[#bc4749] hover:text-[#dda15e] font-pixel text-[10px] border border-[#6b2123] px-2 py-1 transition-colors"
-              >
-                CHALLENGE ↺
-              </button>
-            ) : (
-              <button
-                onClick={() => setAppMode("select")}
-                className="text-[#a3b18a] hover:text-[#dda15e] font-pixel text-[10px] border border-[#382219] px-2 py-1 transition-colors"
-              >
-                SANDBOX ↺
-              </button>
-            )}
+              <h1 className="text-lg md:text-xl font-pixel text-[#EAF4EE] tracking-wide uppercase">
+                Neural Forest
+              </h1>
+              {appMode === "story" ? (
+                <button
+                  onClick={() => { story.skip(); setAppMode("select"); }}
+                  className="bg-[#2C3C35] text-[#E9C46A] hover:bg-[#33463E] font-pixel text-[10px] px-2.5 py-1 rounded-lg border border-[#4E665B] transition-colors cursor-pointer"
+                >
+                  STORY MODE ↺
+                </button>
+              ) : appMode === "challenge" ? (
+                <button
+                  onClick={() => { challenge.reset(); setAppMode("select"); }}
+                  className="bg-[#2C3C35] text-[#D96C6C] hover:bg-[#33463E] font-pixel text-[10px] border border-[#4E665B] px-2.5 py-1 rounded-lg transition-colors"
+                >
+                  CHALLENGE ↺
+                </button>
+              ) : (
+                <button
+                  onClick={() => setAppMode("select")}
+                  className="bg-[#2C3C35] text-[#8DA397] hover:bg-[#33463E] font-pixel text-[10px] border border-[#4E665B] px-2.5 py-1 rounded-lg transition-colors"
+                >
+                  SANDBOX ↺
+                </button>
+              )}
+            </div>
+            <p className="text-[#8DA397] text-xs mt-1 font-sans">
+              Backprop • Hidden Layers • Non-Linear Decision Boundaries • TensorFlow.js
+            </p>
           </div>
-          <p className="text-[#a3b18a] text-lg mt-1 font-vt323">
-            Backprop • Hidden Layers • Non-Linear Decision Boundaries • TensorFlow.js
-          </p>
         </div>
-        <nav className="flex items-center gap-2">
-          <Link href="/"
-            className="px-3 py-1.5 bg-[#1e140e] hover:bg-[#281b12] text-[#5c3d2e] hover:text-[#a3b18a] font-pixel text-[10px] uppercase border-2 border-[#2e1e14] shadow-[2px_2px_0px_0px_#0f0a07] transition-colors">
-            ← Dashboard
-          </Link>
+
+        <nav className="flex items-center gap-2 font-sans">
           <Link href="/playground/perceptron"
-            className="px-3 py-1.5 bg-[#3e271c] hover:bg-[#5c3d2e] text-[#a3b18a] font-pixel text-[10px] uppercase border-2 border-[#1e140e] shadow-[2px_2px_0px_0px_#0f0a07] transition-colors">
+            className="px-3 py-1.5 bg-[#22302B] hover:bg-[#2C3C35] text-[#C9D7CF] font-pixel text-[10px] uppercase border border-[#4E665B] rounded-xl transition-colors">
             01. Perceptron
           </Link>
           <Link href="/playground/gradient-descent"
-            className="px-3 py-1.5 bg-[#3e271c] hover:bg-[#5c3d2e] text-[#a3b18a] font-pixel text-[10px] uppercase border-2 border-[#1e140e] shadow-[2px_2px_0px_0px_#0f0a07] transition-colors">
-            02. Gradient Descent
+            className="px-3 py-1.5 bg-[#22302B] hover:bg-[#2C3C35] text-[#C9D7CF] font-pixel text-[10px] uppercase border border-[#4E665B] rounded-xl transition-colors">
+            02. Gradient
           </Link>
           <Link href="/playground/neural-net"
-            className="px-3 py-1.5 bg-[#386641] text-[#fefae0] font-pixel text-[10px] uppercase border-2 border-[#1b3521] shadow-[2px_2px_0px_0px_#0f0a07]">
+            className="px-3 py-1.5 bg-[#2C3C35] text-[#6FCF97] font-pixel text-[10px] uppercase border border-[#4E665B] rounded-xl">
             03. Neural Net
           </Link>
         </nav>
       </header>
 
-      {/* ── Main Grid ────────────────────────────────────────────────── */}
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-
-        {/* Left: Canvas + Node Diagram */}
         <div id="story-nn-canvas" className="lg:col-span-7 flex flex-col items-center lg:items-start">
           <NeuralNetCanvas
             points={points}
@@ -886,10 +757,7 @@ export default function NeuralNetPlayground() {
           />
         </div>
 
-        {/* Right: Controls + Chart + Readout */}
         <div className="lg:col-span-5 flex flex-col gap-6 w-full">
-
-          {/* Challenge Card (only in challenge mode) */}
           {appMode === "challenge" && (
             <ChallengeCard
               challenge={neuralNetChallenge}
@@ -904,29 +772,26 @@ export default function NeuralNetPlayground() {
             />
           )}
 
-          {/* Status bar */}
-          <div className="bg-[#281b12] border-4 border-[#382219] px-4 py-2 shadow-[4px_4px_0px_0px_#0f0a07] text-[#a3b18a] text-lg font-vt323 flex items-center gap-2">
-            <span className={`inline-block w-2.5 h-2.5 border border-[#1e140e] ${tfReady ? "bg-[#a3b18a]" : "bg-[#bc4749]"} animate-pulse`} />
+          <div className="bg-[#22302B] border border-[#4E665B] px-4 py-2.5 rounded-xl text-[#8DA397] text-xs font-sans flex items-center gap-2">
+            <span className={`inline-block w-2 h-2 rounded-full ${tfReady ? "bg-[#6FCF97]" : "bg-[#D96C6C]"}`} />
             {statusMsg}
           </div>
 
-          {/* Architecture Controls */}
           <div id="story-nn-arch-panel">
-            <RetroPanel title="Network Architecture" borderColor="border-[#382219]">
+            <RetroPanel title="Network Architecture" borderColor="border-[#4E665B]">
               <div className="flex flex-col gap-4">
-                {/* Hidden nodes */}
                 <div id="story-nn-nodes-panel">
-                  <span className="font-pixel text-[10px] text-[#a3b18a] block mb-2 uppercase">
+                  <span className="font-pixel text-[10px] text-[#8DA397] block mb-2 uppercase">
                     Nodes per Hidden Layer:
                   </span>
                   <div className="grid grid-cols-4 gap-2">
                     {[2, 4, 8, 16].map((n) => (
                       <button key={n}
                         onClick={() => handleArchChange({ hiddenSize: n })}
-                        className={`font-pixel text-[10px] uppercase py-2 border-2 transition-all ${
+                        className={`font-pixel text-[10px] uppercase py-2 rounded-xl border transition-all ${
                           architecture.hiddenSize === n
-                            ? "bg-[#dda15e] text-[#1e140e] border-[#7a5225] shadow-[2px_2px_0px_0px_#0f0a07]"
-                            : "bg-[#1e140e] text-[#a3b18a] border-[#382219] hover:bg-[#281b12]"
+                            ? "bg-[#2C3C35] text-[#6FCF97] border-[#6FCF97]"
+                            : "bg-[#182320] text-[#8DA397] border-[#4E665B] hover:bg-[#2C3C35]"
                         }`}
                       >
                         {n}
@@ -935,19 +800,18 @@ export default function NeuralNetPlayground() {
                   </div>
                 </div>
 
-                {/* Num hidden layers */}
                 <div>
-                  <span className="font-pixel text-[10px] text-[#a3b18a] block mb-2 uppercase">
+                  <span className="font-pixel text-[10px] text-[#8DA397] block mb-2 uppercase">
                     Hidden Layers:
                   </span>
                   <div className="grid grid-cols-2 gap-2">
                     {([1, 2] as const).map((n) => (
                       <button key={n}
                         onClick={() => handleArchChange({ numHiddenLayers: n })}
-                        className={`font-pixel text-[10px] uppercase py-2 border-2 transition-all ${
+                        className={`font-pixel text-[10px] uppercase py-2 rounded-xl border transition-all ${
                           architecture.numHiddenLayers === n
-                            ? "bg-[#dda15e] text-[#1e140e] border-[#7a5225] shadow-[2px_2px_0px_0px_#0f0a07]"
-                            : "bg-[#1e140e] text-[#a3b18a] border-[#382219] hover:bg-[#281b12]"
+                            ? "bg-[#2C3C35] text-[#6FCF97] border-[#6FCF97]"
+                            : "bg-[#182320] text-[#8DA397] border-[#4E665B] hover:bg-[#2C3C35]"
                         }`}
                       >
                         {n} Layer{n > 1 ? "s" : ""}
@@ -956,7 +820,6 @@ export default function NeuralNetPlayground() {
                   </div>
                 </div>
 
-                {/* Learning rate */}
                 <RetroSlider
                   label="Learning Rate (η)"
                   min={0.01}
@@ -967,7 +830,6 @@ export default function NeuralNetPlayground() {
                   displayValue={learningRate.toFixed(2)}
                 />
 
-                {/* Action buttons */}
                 <div className="grid grid-cols-2 gap-3">
                   <RetroButton variant="primary" onClick={doTrainStep} disabled={!tfReady || points.length === 0}>
                     Train Step
@@ -990,10 +852,10 @@ export default function NeuralNetPlayground() {
                   </RetroButton>
                 </div>
 
-                <div className="pt-3 border-t-2 border-[#382219]">
-                  <span className="font-pixel text-[10px] text-[#a3b18a] block mb-2 uppercase">Presets</span>
+                <div className="pt-3 border-t border-[#4E665B]">
+                  <span className="font-pixel text-[10px] text-[#8DA397] block mb-2 uppercase">Presets</span>
                   <div id="story-nn-xor-btn">
-                    <RetroButton variant="secondary" className="w-full" onClick={handleLoadPreset}>
+                    <RetroButton variant="secondary" className="w-full text-xs" onClick={handleLoadPreset}>
                       Load XOR Pattern
                     </RetroButton>
                   </div>
@@ -1002,59 +864,48 @@ export default function NeuralNetPlayground() {
             </RetroPanel>
           </div>
 
-          {/* Loss Chart */}
-          <RetroPanel title="Loss Convergence Chart" borderColor="border-[#382219]">
+          <RetroPanel title="Loss Convergence Chart" borderColor="border-[#4E665B]">
             <LossChart lossHistory={lossHistory} />
           </RetroPanel>
 
-          {/* Live Readout */}
-          <RetroPanel title="Training Readout" borderColor="border-[#b37d36]">
-            <div className="space-y-3">
+          <RetroPanel title="Training Readout" borderColor="border-[#4E665B]">
+            <div className="space-y-3 font-sans">
               <div className="grid grid-cols-3 gap-2 text-center">
-                <div className="bg-[#1e140e] p-2 border-2 border-[#382219]">
-                  <span className="text-[#a3b18a] block font-pixel text-[9px]">POINTS</span>
-                  <span className="text-[#fefae0] font-vt323 text-2xl">{points.length}</span>
+                <div className="bg-[#182320] p-2.5 rounded-xl border border-[#4E665B]">
+                  <span className="text-[#8DA397] block font-pixel text-[9px]">POINTS</span>
+                  <span className="text-[#EAF4EE] font-mono text-base font-bold">{points.length}</span>
                 </div>
-                <div className="bg-[#1e140e] p-2 border-2 border-[#382219]">
-                  <span className="text-[#a3b18a] block font-pixel text-[9px]">STEPS</span>
-                  <span className="text-[#dda15e] font-vt323 text-2xl">{stepCount}</span>
+                <div className="bg-[#182320] p-2.5 rounded-xl border border-[#4E665B]">
+                  <span className="text-[#8DA397] block font-pixel text-[9px]">STEPS</span>
+                  <span className="text-[#6FCF97] font-mono text-base font-bold">{stepCount}</span>
                 </div>
-                <div className="bg-[#1e140e] p-2 border-2 border-[#382219]">
-                  <span className="text-[#a3b18a] block font-pixel text-[9px]">LOSS</span>
-                  <span
-                    className={`font-vt323 text-2xl ${
-                      currentLoss === null ? "text-[#a3b18a]" :
-                      currentLoss < 0.1 ? "text-[#a3b18a]" :
-                      currentLoss < 0.4 ? "text-[#dda15e]" : "text-[#bc4749]"
-                    }`}
-                  >
+                <div className="bg-[#182320] p-2.5 rounded-xl border border-[#4E665B]">
+                  <span className="text-[#8DA397] block font-pixel text-[9px]">LOSS</span>
+                  <span className="font-mono text-base font-bold text-[#EAF4EE]">
                     {currentLoss !== null ? currentLoss.toFixed(4) : "—"}
                   </span>
                 </div>
               </div>
 
-              <div className="bg-[#1e140e] p-2.5 border-2 border-[#382219] text-lg leading-relaxed">
-                <p className="font-pixel text-[9px] text-[#dda15e] uppercase mb-1">Architecture:</p>
-                <code className="font-vt323 text-xl text-[#fefae0]">
+              <div className="bg-[#182320] p-3 rounded-xl border border-[#4E665B] text-xs">
+                <p className="font-pixel text-[9px] text-[#E9C46A] uppercase mb-1">Architecture:</p>
+                <code className="font-mono text-xs text-[#EAF4EE]">
                   2 → {architecture.hiddenSize}{architecture.numHiddenLayers === 2 ? ` → ${architecture.hiddenSize}` : ""} → 1 (sigmoid)
                 </code>
               </div>
             </div>
           </RetroPanel>
 
-          {/* Concept note */}
-          <div className="bg-[#281b12] border-4 border-[#382219] p-3 shadow-[4px_4px_0px_0px_#0f0a07] text-lg text-[#a3b18a] leading-relaxed">
-            <p className="text-[#dda15e] font-pixel text-[9px] uppercase mb-1">💡 Why Hidden Layers?</p>
+          <div className="bg-[#2C3C35] border border-[#4E665B] p-4 rounded-2xl shadow-sm text-xs text-[#C9D7CF] leading-relaxed font-sans">
+            <p className="text-[#E9C46A] font-pixel text-[9px] uppercase mb-1">💡 Why Hidden Layers?</p>
             <p>
               A single-layer perceptron can only draw a <em>straight line</em>. With hidden layers and ReLU activations,
-              the network learns <em>curved, non-linear</em> decision regions — enabling it to solve problems like XOR that
-              are impossible for a linear classifier.
+              the network learns <em>curved, non-linear</em> decision regions — enabling it to solve problems like XOR.
             </p>
           </div>
         </div>
       </div>
 
-      {/* ── Story Mode Dialogue Overlay ───────────────────────────────────── */}
       {appMode === "story" && story.currentStep && (
         <NPCDialogueBox
           step={story.currentStep}
@@ -1077,7 +928,6 @@ export default function NeuralNetPlayground() {
         />
       )}
 
-      {/* ── Challenge Result Modal ────────────────────────────────────────── */}
       {challenge.showModal && (
         <ChallengeResultModal
           challenge={neuralNetChallenge}

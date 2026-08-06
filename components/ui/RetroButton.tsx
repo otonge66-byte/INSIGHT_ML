@@ -1,7 +1,8 @@
 import React from "react";
 
-interface RetroButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "primary" | "secondary" | "danger" | "accent";
+interface RetroButtonProps
+  extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: "primary" | "secondary" | "danger" | "accent" | "cozy" | "leaf";
   children: React.ReactNode;
 }
 
@@ -13,17 +14,21 @@ export const RetroButton: React.FC<RetroButtonProps> = ({
   ...props
 }) => {
   const baseStyle =
-    "font-pixel text-[11px] sm:text-xs font-bold uppercase tracking-wider px-4 py-2.5 border-4 transition-all select-none cursor-pointer active:translate-x-1 active:translate-y-1 active:shadow-none disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none rounded-none";
+    "font-sans text-xs font-semibold uppercase tracking-wider px-4 py-2.5 border rounded-xl transition-all duration-200 select-none cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98]";
 
   const variants = {
     primary:
-      "bg-[#386641] hover:bg-[#4a7c59] text-[#fefae0] border-[#1b3521] shadow-[4px_4px_0px_0px_#0f0a07]",
+      "bg-[#2C3C35] hover:bg-[#33463E] text-[#6FCF97] border-[#4E665B]",
     secondary:
-      "bg-[#5c3d2e] hover:bg-[#6e4b3b] text-[#fefae0] border-[#342118] shadow-[4px_4px_0px_0px_#0f0a07]",
+      "bg-[#22302B] hover:bg-[#2C3C35] text-[#C9D7CF] border-[#4E665B]",
     danger:
-      "bg-[#bc4749] hover:bg-[#d05355] text-[#fefae0] border-[#6b2123] shadow-[4px_4px_0px_0px_#0f0a07]",
+      "bg-[#3F2525] hover:bg-[#4E2E2E] text-[#D96C6C] border-[#D96C6C]/40",
     accent:
-      "bg-[#dda15e] hover:bg-[#e6b070] text-[#1e140e] border-[#7a5225] shadow-[4px_4px_0px_0px_#0f0a07]",
+      "bg-[#3F3722] hover:bg-[#4F452A] text-[#E9C46A] border-[#E9C46A]/40",
+    cozy:
+      "bg-[#2C3C35] hover:bg-[#33463E] text-[#A6D8B8] border-[#4E665B]",
+    leaf:
+      "bg-[#2C3C35] hover:bg-[#33463E] text-[#6FCF97] border-[#4E665B]",
   };
 
   return (
