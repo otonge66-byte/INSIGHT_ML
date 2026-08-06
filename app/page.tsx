@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ByteSprite } from "@/components/sprites/ByteSprite";
 import { HeaderAuthButton } from "@/components/ui/HeaderAuthButton";
-import { ProgressDashboard } from "@/components/progress/ProgressDashboard";
+
 import {
   PerceptronBadge,
   GradientBadge,
@@ -537,10 +537,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* ── MY PROGRESS DASHBOARD ─────────────────────────────────────────── */}
-          <div className="home-panel-fade" style={{ animationDelay: "0.2s" }}>
-            <ProgressDashboard />
-          </div>
+
 
           {/* ── MODULE CARDS ──────────────────────────────────────────────────── */}
           <section

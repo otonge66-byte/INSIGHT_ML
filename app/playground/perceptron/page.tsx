@@ -15,6 +15,8 @@ import { useStoryMode } from "@/lib/story/useStoryMode";
 import { useChallengeMode } from "@/lib/challenge/useChallengeMode";
 import { perceptronWalkthrough } from "@/lib/story/walkthroughs/perceptron";
 import { perceptronChallenge } from "@/lib/challenge/challenges";
+import { MathFormulaPanel } from "@/components/ui/MathFormulaPanel";
+import { PerceptronSpamProject } from "@/components/projects/PerceptronSpamProject";
 import {
   DataPoint,
   PerceptronWeights,
@@ -23,11 +25,21 @@ import {
   calculateAccuracy,
 } from "@/lib/ml/perceptron";
 
-type AppMode = "select" | "story" | "sandbox" | "challenge";
+type AppMode = "select" | "story" | "sandbox" | "challenge" | "project";
 
 export default function PerceptronPlayground() {
   const router = useRouter();
   const [appMode, setAppMode] = useState<AppMode>("select");
+
+  // Allow URL searchParam ?mode=project
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get("mode") === "project") {
+        setAppMode("project");
+      }
+    }
+  }, []);
 
   const [points, setPoints] = useState<DataPoint[]>([]);
   const [weights, setWeights] = useState<PerceptronWeights>(initRandomWeights());
@@ -183,20 +195,20 @@ export default function PerceptronPlayground() {
           </div>
 
           {/* Mode cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 w-full">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
             {/* Story Mode card */}
             <button
               onClick={enterStoryMode}
-              className="group bg-[#281b12] border-4 border-[#386641] shadow-[6px_6px_0px_0px_#0f0a07] p-6 text-left flex flex-col gap-3 hover:bg-[#2e2214] hover:-translate-y-1 transition-all active:translate-y-0 active:shadow-[2px_2px_0px_0px_#0f0a07]"
+              className="group bg-[#281b12] border-4 border-[#386641] shadow-[6px_6px_0px_0px_#0f0a07] p-5 text-left flex flex-col gap-3 hover:bg-[#2e2214] hover:-translate-y-1 transition-all active:translate-y-0 active:shadow-[2px_2px_0px_0px_#0f0a07]"
             >
               <div className="text-4xl">📖</div>
               <div>
-                <h2 className="font-pixel text-[12px] text-[#dda15e] uppercase mb-2">Story Mode</h2>
-                <p className="text-[#a3b18a] text-lg leading-snug">
+                <h2 className="font-pixel text-[12px] text-[#dda15e] uppercase mb-1">Story Mode</h2>
+                <p className="text-[#a3b18a] text-base leading-snug">
                   Guided walkthrough with BYTE the robot professor.
                 </p>
               </div>
-              <span className="font-pixel text-[10px] text-[#386641] border border-[#386641] px-2 py-1 self-start">
+              <span className="font-pixel text-[9px] text-[#386641] border border-[#386641] px-2 py-1 self-start mt-auto">
                 ▶ START TUTORIAL
               </span>
             </button>
@@ -204,16 +216,16 @@ export default function PerceptronPlayground() {
             {/* Challenge Mode card */}
             <button
               onClick={enterChallengeMode}
-              className="group bg-[#281b12] border-4 border-[#dda15e] shadow-[6px_6px_0px_0px_#0f0a07] p-6 text-left flex flex-col gap-3 hover:bg-[#2e2214] hover:-translate-y-1 transition-all active:translate-y-0 active:shadow-[2px_2px_0px_0px_#0f0a07]"
+              className="group bg-[#281b12] border-4 border-[#dda15e] shadow-[6px_6px_0px_0px_#0f0a07] p-5 text-left flex flex-col gap-3 hover:bg-[#2e2214] hover:-translate-y-1 transition-all active:translate-y-0 active:shadow-[2px_2px_0px_0px_#0f0a07]"
             >
               <div className="text-4xl">🏆</div>
               <div>
-                <h2 className="font-pixel text-[12px] text-[#dda15e] uppercase mb-2">Challenge Mode</h2>
-                <p className="text-[#a3b18a] text-lg leading-snug">
+                <h2 className="font-pixel text-[12px] text-[#dda15e] uppercase mb-1">Challenge Mode</h2>
+                <p className="text-[#a3b18a] text-base leading-snug">
                   &quot;{perceptronChallenge.title}&quot; — {perceptronChallenge.goalSummary}
                 </p>
               </div>
-              <span className="font-pixel text-[10px] text-[#dda15e] border border-[#dda15e] px-2 py-1 self-start">
+              <span className="font-pixel text-[9px] text-[#dda15e] border border-[#dda15e] px-2 py-1 self-start mt-auto">
                 ▶ START CHALLENGE
               </span>
             </button>
@@ -221,17 +233,34 @@ export default function PerceptronPlayground() {
             {/* Sandbox Mode card */}
             <button
               onClick={enterSandboxMode}
-              className="group bg-[#281b12] border-4 border-[#382219] shadow-[6px_6px_0px_0px_#0f0a07] p-6 text-left flex flex-col gap-3 hover:bg-[#2e2214] hover:-translate-y-1 transition-all active:translate-y-0 active:shadow-[2px_2px_0px_0px_#0f0a07]"
+              className="group bg-[#281b12] border-4 border-[#382219] shadow-[6px_6px_0px_0px_#0f0a07] p-5 text-left flex flex-col gap-3 hover:bg-[#2e2214] hover:-translate-y-1 transition-all active:translate-y-0 active:shadow-[2px_2px_0px_0px_#0f0a07]"
             >
               <div className="text-4xl">🔬</div>
               <div>
-                <h2 className="font-pixel text-[12px] text-[#dda15e] uppercase mb-2">Sandbox Mode</h2>
-                <p className="text-[#a3b18a] text-lg leading-snug">
+                <h2 className="font-pixel text-[12px] text-[#dda15e] uppercase mb-1">Sandbox Mode</h2>
+                <p className="text-[#a3b18a] text-base leading-snug">
                   Jump straight in and experiment freely.
                 </p>
               </div>
-              <span className="font-pixel text-[10px] text-[#a3b18a] border border-[#382219] px-2 py-1 self-start">
+              <span className="font-pixel text-[9px] text-[#a3b18a] border border-[#382219] px-2 py-1 self-start mt-auto">
                 ▶ FREE EXPLORE
+              </span>
+            </button>
+
+            {/* Applied Project Mode card */}
+            <button
+              onClick={() => setAppMode("project")}
+              className="group bg-[#281b12] border-4 border-[#7ecb8a] shadow-[6px_6px_0px_0px_#0f0a07] p-5 text-left flex flex-col gap-3 hover:bg-[#2e2214] hover:-translate-y-1 transition-all active:translate-y-0 active:shadow-[2px_2px_0px_0px_#0f0a07]"
+            >
+              <div className="text-4xl">🛠️</div>
+              <div>
+                <h2 className="font-pixel text-[12px] text-[#7ecb8a] uppercase mb-1">Applied Project</h2>
+                <p className="text-[#a3b18a] text-base leading-snug">
+                  Spam &amp; Priority Email Classifier.
+                </p>
+              </div>
+              <span className="font-pixel text-[9px] text-[#7ecb8a] border border-[#7ecb8a] px-2 py-1 self-start mt-auto">
+                ▶ BUILD PROJECT
               </span>
             </button>
           </div>
@@ -240,7 +269,7 @@ export default function PerceptronPlayground() {
     );
   }
 
-  // ── Shared Playground UI (Story + Sandbox + Challenge all render this) ────
+  // ── Shared Playground UI (Story + Sandbox + Challenge + Project) ────────────
   return (
     <main className="min-h-screen bg-[#1e140e] text-[#fefae0] p-4 md:p-8 font-vt323 selection:bg-[#dda15e] selection:text-[#1e140e]">
       {/* Top Header Bar */}
@@ -263,6 +292,13 @@ export default function PerceptronPlayground() {
               >
                 CHALLENGE ↺
               </button>
+            ) : appMode === "project" ? (
+              <button
+                onClick={() => setAppMode("select")}
+                className="text-[#7ecb8a] hover:text-[#dda15e] font-pixel text-[10px] border border-[#386641] px-2.5 py-1 transition-colors cursor-pointer"
+              >
+                PROJECT ↺
+              </button>
             ) : (
               <button
                 onClick={() => setAppMode("select")}
@@ -271,6 +307,26 @@ export default function PerceptronPlayground() {
                 SANDBOX ↺
               </button>
             )}
+
+            {/* Mode selector quick tabs */}
+            <div className="flex items-center gap-1.5 ml-2">
+              <button
+                onClick={() => setAppMode("sandbox")}
+                className={`px-2 py-1 font-pixel text-[9px] uppercase border ${
+                  appMode === "sandbox" ? "bg-[#382219] text-[#dda15e] border-[#dda15e]" : "text-[#a3b18a] border-[#382219]"
+                }`}
+              >
+                🔬 Sandbox
+              </button>
+              <button
+                onClick={() => setAppMode("project")}
+                className={`px-2 py-1 font-pixel text-[9px] uppercase border ${
+                  appMode === "project" ? "bg-[#386641] text-[#fefae0] border-[#7ecb8a]" : "text-[#7ecb8a] border-[#386641]"
+                }`}
+              >
+                🛠️ Apply It
+              </button>
+            </div>
           </div>
 
           {/* Right Navigation: Module Tabs & Profile */}
@@ -306,18 +362,30 @@ export default function PerceptronPlayground() {
         </div>
       </header>
 
-      {/* Main Grid Layout */}
-      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        {/* Left Column: Interactive Canvas */}
-        <div id="story-canvas-area" className="lg:col-span-7 flex flex-col items-center lg:items-start">
-          <PerceptronCanvas
-            points={points}
-            weights={weights}
-            onAddPoint={handleAddPoint}
-            width={600}
-            height={600}
-          />
+      {/* Applied Project View OR Interactive Canvas Grid */}
+      {appMode === "project" ? (
+        <div className="max-w-7xl mx-auto">
+          <PerceptronSpamProject />
         </div>
+      ) : (
+        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          {/* Left Column: Interactive Canvas & Math Formula Panel */}
+          <div id="story-canvas-area" className="lg:col-span-7 flex flex-col items-center lg:items-start w-full">
+            <PerceptronCanvas
+              points={points}
+              weights={weights}
+              onAddPoint={handleAddPoint}
+              width={600}
+              height={600}
+            />
+            {/* Math Formula Panel below Canvas */}
+            <MathFormulaPanel
+              type="perceptron"
+              w1={weights.w1}
+              w2={weights.w2}
+              bias={weights.bias}
+            />
+          </div>
 
         {/* Right Column: Controls & Live Readout */}
         <div className="lg:col-span-5 flex flex-col gap-6 w-full">
@@ -458,8 +526,9 @@ export default function PerceptronPlayground() {
           </RetroPanel>
         </div>
       </div>
+    )}
 
-      {/* ── Story Mode Dialogue Overlay ───────────────────────────────────── */}
+      {/* -- Story Mode Dialogue Overlay -- */}
       {appMode === "story" && story.currentStep && (
         <NPCDialogueBox
           step={story.currentStep}

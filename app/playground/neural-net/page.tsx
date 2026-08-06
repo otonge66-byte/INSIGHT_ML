@@ -21,6 +21,8 @@ import { useStoryMode } from "@/lib/story/useStoryMode";
 import { useChallengeMode } from "@/lib/challenge/useChallengeMode";
 import { neuralNetWalkthrough } from "@/lib/story/walkthroughs/neuralNet";
 import { neuralNetChallenge } from "@/lib/challenge/challenges";
+import { MathFormulaPanel } from "@/components/ui/MathFormulaPanel";
+import { NeuralDigitProject } from "@/components/projects/NeuralDigitProject";
 import { NNDataPoint, LayerWeightInfo, NetworkArchitecture } from "@/modules/neural-net/types";
 import type { TFType, TFModel } from "@/lib/ml/neural-net";
 
@@ -107,11 +109,20 @@ const OVERFIT_TEST: NNDataPoint[] = [
   { id: "e10", x:  0.10, y:  0.10, label: 0 }, // centre
 ];
 
-type AppMode = "select" | "story" | "sandbox" | "challenge" | "overfitting";
+type AppMode = "select" | "story" | "sandbox" | "challenge" | "overfitting" | "project";
 
 export default function NeuralNetPlayground() {
   const router = useRouter();
   const [appMode, setAppMode] = useState<AppMode>("select");
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get("mode") === "project") {
+        setAppMode("project");
+      }
+    }
+  }, []);
 
   const [points, setPoints] = useState<NNDataPoint[]>([]);
   const [lossHistory, setLossHistory] = useState<number[]>([]);
@@ -490,37 +501,20 @@ export default function NeuralNetPlayground() {
               </span>
             </button>
 
-            {/* Sandbox Mode card */}
+            {/* Applied Project Mode card */}
             <button
-              onClick={enterSandboxMode}
-              className="group bg-[#281b12] border-4 border-[#382219] shadow-[6px_6px_0px_0px_#0f0a07] p-6 text-left flex flex-col gap-3 hover:bg-[#2e2214] hover:-translate-y-1 transition-all active:translate-y-0 active:shadow-[2px_2px_0px_0px_#0f0a07]"
-            >
-              <div className="text-4xl">🔬</div>
-              <div>
-                <h2 className="font-pixel text-[12px] text-[#dda15e] uppercase mb-2">Sandbox Mode</h2>
-                <p className="text-[#a3b18a] text-lg leading-snug">
-                  Adjust layers, nodes, and learning rate freely. Full control.
-                </p>
-              </div>
-              <span className="font-pixel text-[10px] text-[#a3b18a] border border-[#382219] px-2 py-1 self-start">
-                ▶ FREE EXPLORE
-              </span>
-            </button>
-
-            {/* Overfitting Demo card */}
-            <button
-              onClick={enterOverfittingMode}
+              onClick={() => setAppMode("project")}
               className="group bg-[#281b12] border-4 border-[#bc4749] shadow-[6px_6px_0px_0px_#0f0a07] p-6 text-left flex flex-col gap-3 hover:bg-[#2e1a14] hover:-translate-y-1 transition-all active:translate-y-0 active:shadow-[2px_2px_0px_0px_#0f0a07]"
             >
-              <div className="text-4xl">📊</div>
+              <div className="text-4xl">🛠️</div>
               <div>
-                <h2 className="font-pixel text-[12px] text-[#bc4749] uppercase mb-2">Overfitting Demo</h2>
+                <h2 className="font-pixel text-[12px] text-[#bc4749] uppercase mb-2">Applied Project</h2>
                 <p className="text-[#a3b18a] text-lg leading-snug">
-                  Watch a model memorise noise. See training vs test accuracy diverge as complexity grows.
+                  16×16 Hand-Drawn Digit &amp; Shape Recognizer (3Blue1Brown Model).
                 </p>
               </div>
               <span className="font-pixel text-[10px] text-[#bc4749] border border-[#6b2123] px-2 py-1 self-start">
-                ▶ EXPLORE OVERFITTING
+                ▶ BUILD CAPSTONE
               </span>
             </button>
           </div>
@@ -599,39 +593,30 @@ export default function NeuralNetPlayground() {
               />
               {/* SVG overlay: test points rendered as distinct hollow circles */}
               <svg
-                className="absolute top-0 left-0 pointer-events-none"
                 width={560}
                 height={560}
-                style={{ imageRendering: "pixelated" }}
+                className="absolute top-0 left-0 pointer-events-none"
               >
-                {OVERFIT_TEST.map((p) => {
-                  const cx = ((p.x + 1) / 2) * 560;
-                  const cy = ((1 - p.y) / 2) * 560;
-                  const strokeColor = p.label === 1 ? "#bc4749" : "#386641";
+                {OVERFIT_TEST.map((pt) => {
+                  const cx = ((pt.x + 1) / 2) * 560;
+                  const cy = ((1 - pt.y) / 2) * 560;
+                  const strokeColor = pt.label === 1 ? "#dda15e" : "#bc4749";
                   return (
-                    <g key={p.id}>
-                      {/* Outer hollow ring */}
+                    <g key={pt.id}>
                       <circle
                         cx={cx}
                         cy={cy}
                         r={9}
-                        fill="#18110b"
+                        fill="none"
                         stroke={strokeColor}
                         strokeWidth={3}
                       />
-                      {/* Inner text symbol */}
-                      <text
-                        x={cx}
-                        y={cy + 1}
+                      <circle
+                        cx={cx}
+                        cy={cy}
+                        r={3}
                         fill={strokeColor}
-                        fontSize="12"
-                        fontWeight="bold"
-                        fontFamily="monospace"
-                        textAnchor="middle"
-                        dominantBaseline="middle"
-                      >
-                        {p.label === 1 ? "+" : "−"}
-                      </text>
+                      />
                     </g>
                   );
                 })}
@@ -658,61 +643,25 @@ export default function NeuralNetPlayground() {
           {/* Right: Controls + Dual Accuracy + BYTE alert */}
           <div className="lg:col-span-5 flex flex-col gap-5">
 
-            {/* ── Dual Accuracy Readout ── */}
-            <div className="bg-[#281b12] border-4 border-[#382219] p-4 shadow-[4px_4px_0px_0px_#0f0a07]">
-              <p className="font-pixel text-[9px] text-[#a3b18a] uppercase mb-3 tracking-wider">Live Accuracy Comparison</p>
-              <div className="grid grid-cols-2 gap-3">
-                {/* Training Accuracy */}
-                <div className="bg-[#1e140e] border-2 border-[#4a7c59] p-3 text-center">
-                  <p className="font-pixel text-[8px] text-[#4a7c59] uppercase mb-1">Training Acc</p>
-                  <p className={`font-vt323 text-4xl ${
-                    ovPredGrid === null ? "text-[#5c3d2e]" :
-                    ovTrainAcc >= 90 ? "text-[#7ecb8a]" :
-                    ovTrainAcc >= 70 ? "text-[#dda15e]" : "text-[#bc4749]"
-                  }`}>
-                    {ovPredGrid === null ? "—" : `${ovTrainAcc}%`}
-                  </p>
-                  {/* Mini bar */}
-                  <div className="w-full h-1.5 bg-[#1a0d0e] mt-2">
-                    <div
-                      className="h-full bg-[#4a7c59] transition-all duration-300"
-                      style={{ width: `${ovPredGrid === null ? 0 : ovTrainAcc}%` }}
-                    />
-                  </div>
+            {/* Accuracy Comparison Card */}
+            <div className="bg-[#281b12] border-4 border-[#bc4749] p-4 shadow-[6px_6px_0px_0px_#0f0a07]">
+              <h2 className="font-pixel text-[10px] text-[#dda15e] uppercase mb-3">Live Accuracy Metrics</h2>
+              <div className="grid grid-cols-2 gap-3 mb-3">
+                <div className="bg-[#1e140e] p-3 border-2 border-[#382219] text-center">
+                  <span className="font-pixel text-[8px] text-[#dda15e] uppercase block mb-1">TRAINING SET (●)</span>
+                  <span className="font-vt323 text-3xl font-bold text-[#fefae0]">{ovTrainAcc}%</span>
                 </div>
-
-                {/* Test Accuracy */}
-                <div className="bg-[#1e140e] border-2 border-[#bc4749] p-3 text-center">
-                  <p className="font-pixel text-[8px] text-[#bc4749] uppercase mb-1">Test Acc</p>
-                  <p className={`font-vt323 text-4xl ${
-                    ovPredGrid === null ? "text-[#5c3d2e]" :
-                    ovTestAcc >= 80 ? "text-[#7ecb8a]" :
-                    ovTestAcc >= 60 ? "text-[#dda15e]" : "text-[#bc4749]"
-                  }`}>
-                    {ovPredGrid === null ? "—" : `${ovTestAcc}%`}
-                  </p>
-                  {/* Mini bar */}
-                  <div className="w-full h-1.5 bg-[#1a0d0e] mt-2">
-                    <div
-                      className="h-full bg-[#bc4749] transition-all duration-300"
-                      style={{ width: `${ovPredGrid === null ? 0 : ovTestAcc}%` }}
-                    />
-                  </div>
+                <div className="bg-[#1e140e] p-3 border-2 border-[#6b2123] text-center">
+                  <span className="font-pixel text-[8px] text-[#bc4749] uppercase block mb-1">TEST SET (◯)</span>
+                  <span className="font-vt323 text-3xl font-bold text-[#bc4749]">{ovTestAcc}%</span>
                 </div>
               </div>
-
-              {/* Gap indicator */}
-              {ovPredGrid && (
-                <div className="mt-3 flex items-center justify-between border-t border-[#382219] pt-2">
-                  <span className="font-pixel text-[8px] text-[#5c3d2e] uppercase">Train/Test Gap</span>
-                  <span className={`font-vt323 text-xl ${
-                    ovGap <= 5 ? "text-[#7ecb8a]" :
-                    ovGap <= 15 ? "text-[#dda15e]" : "text-[#bc4749]"
-                  }`}>
-                    {ovGap >= 0 ? "+" : ""}{ovGap}%
-                  </span>
-                </div>
-              )}
+              <div className="bg-[#1e140e] p-2 border border-[#382219] text-center">
+                <span className="text-[#a3b18a] text-lg">Generalisation Gap: </span>
+                <span className={`font-bold text-xl ${ovGap >= 15 ? "text-[#bc4749]" : "text-[#a3b18a]"}`}>
+                  {ovGap}%
+                </span>
+              </div>
             </div>
 
             {/* ── BYTE Alert: overfitting detected ── */}
@@ -735,8 +684,8 @@ export default function NeuralNetPlayground() {
             )}
 
             {/* ── Node Count Control ── */}
-            <RetroPanel title="Hidden Nodes per Layer" borderColor="border-[#382219]">
-              <div className="flex flex-col gap-3">
+            <RetroPanel title="Model Capacity (Hidden Nodes)" borderColor="border-[#382219]">
+              <div className="space-y-2">
                 <p className="text-[#5c3d2e] text-base leading-snug">
                   More nodes → more capacity → easier to memorise noise. Try 2 vs 16.
                 </p>
@@ -796,19 +745,6 @@ export default function NeuralNetPlayground() {
               <LossChart lossHistory={ovLossHistory} />
             </RetroPanel>
 
-            {/* Concept note */}
-            <div className="bg-[#281b12] border-4 border-[#382219] p-3 shadow-[4px_4px_0px_0px_#0f0a07] text-lg text-[#a3b18a] leading-relaxed">
-              <p className="text-[#dda15e] font-pixel text-[9px] uppercase mb-1">💡 The Overfitting Intuition</p>
-              <p>
-                A model with too many parameters can draw <em>arbitrarily complex</em> boundaries that perfectly fit training noise.
-                This is called <em>overfitting</em> — the model memorises rather than generalises.
-                The test set reveals this: its accuracy lags or even falls as training accuracy climbs to 100%.
-              </p>
-              <p className="mt-2 text-[#5c3d2e]">
-                Solution: reduce model capacity, add dropout, use regularisation, or collect more data.
-              </p>
-            </div>
-
           </div>
         </div>
       </main>
@@ -818,7 +754,7 @@ export default function NeuralNetPlayground() {
   // ── Shared Playground UI ──────────────────────────────────────────────────
   return (
     <main className="min-h-screen bg-[#1e140e] text-[#fefae0] p-4 md:p-8 font-vt323 selection:bg-[#dda15e] selection:text-[#1e140e]">
-      {/* ── Header & Module Tabs ─────────────────────────────────────── */}
+      {/* -- Header & Module Tabs -- */}
       <header className="max-w-7xl mx-auto mb-6 bg-[#281b12] border-4 border-[#382219] p-4 sm:p-5 shadow-[6px_6px_0px_0px_#0f0a07] rounded-none">
         {/* Tier 1: Context Badges & Navigation Bar */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b-2 border-[#382219]">
@@ -838,6 +774,13 @@ export default function NeuralNetPlayground() {
               >
                 CHALLENGE ↺
               </button>
+            ) : appMode === "project" ? (
+              <button
+                onClick={() => setAppMode("select")}
+                className="text-[#bc4749] hover:text-[#dda15e] font-pixel text-[10px] border border-[#6b2123] px-2.5 py-1 transition-colors cursor-pointer"
+              >
+                PROJECT ↺
+              </button>
             ) : (
               <button
                 onClick={() => setAppMode("select")}
@@ -846,6 +789,26 @@ export default function NeuralNetPlayground() {
                 SANDBOX ↺
               </button>
             )}
+
+            {/* Quick Mode tabs */}
+            <div className="flex items-center gap-1.5 ml-2">
+              <button
+                onClick={() => setAppMode("sandbox")}
+                className={`px-2 py-1 font-pixel text-[9px] uppercase border ${
+                  appMode === "sandbox" ? "bg-[#382219] text-[#dda15e] border-[#dda15e]" : "text-[#a3b18a] border-[#382219]"
+                }`}
+              >
+                🔬 Sandbox
+              </button>
+              <button
+                onClick={() => setAppMode("project")}
+                className={`px-2 py-1 font-pixel text-[9px] uppercase border ${
+                  appMode === "project" ? "bg-[#bc4749] text-[#fefae0] border-[#6b2123]" : "text-[#bc4749] border-[#6b2123]"
+                }`}
+              >
+                🛠️ Apply It
+              </button>
+            </div>
           </div>
 
           {/* Right Navigation: Module Tabs & Profile */}
@@ -880,22 +843,27 @@ export default function NeuralNetPlayground() {
           </p>
         </div>
       </header>
-
-      {/* ── Main Grid ────────────────────────────────────────────────── */}
-      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-
-        {/* Left: Canvas + Node Diagram */}
-        <div id="story-nn-canvas" className="lg:col-span-7 flex flex-col items-center lg:items-start">
-          <NeuralNetCanvas
-            points={points}
-            predictionGrid={predGrid}
-            gridRes={GRID_RES}
-            layerWeights={layerWeights}
-            onAddPoint={handleAddPoint}
-            width={560}
-            height={560}
-          />
+      {/* Applied Project View OR Interactive Canvas Grid */}
+      {appMode === "project" ? (
+        <div className="max-w-7xl mx-auto">
+          <NeuralDigitProject />
         </div>
+      ) : (
+        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          {/* Left: Canvas + Node Diagram + Math Formula Panel */}
+          <div id="story-nn-canvas" className="lg:col-span-7 flex flex-col items-center lg:items-start w-full">
+            <NeuralNetCanvas
+              points={points}
+              predictionGrid={predGrid}
+              gridRes={GRID_RES}
+              layerWeights={layerWeights}
+              onAddPoint={handleAddPoint}
+              width={560}
+              height={560}
+            />
+            {/* Math Formula Panel below Canvas */}
+            <MathFormulaPanel type="neural-net" />
+          </div>
 
         {/* Right: Controls + Chart + Readout */}
         <div className="lg:col-span-5 flex flex-col gap-6 w-full">
@@ -1064,8 +1032,9 @@ export default function NeuralNetPlayground() {
           </div>
         </div>
       </div>
+    )}
 
-      {/* ── Story Mode Dialogue Overlay ───────────────────────────────────── */}
+      {/* Story Mode Dialogue Overlay */}
       {appMode === "story" && story.currentStep && (
         <NPCDialogueBox
           step={story.currentStep}
@@ -1088,7 +1057,7 @@ export default function NeuralNetPlayground() {
         />
       )}
 
-      {/* ── Challenge Result Modal ────────────────────────────────────────── */}
+      {/* Challenge Result Modal */}
       {challenge.showModal && (
         <ChallengeResultModal
           challenge={neuralNetChallenge}

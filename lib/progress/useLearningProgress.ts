@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useUser } from "@clerk/nextjs";
+import { useUser, useAuth } from "@clerk/nextjs";
 import {
   ProgressSummary,
   LearningMode,
@@ -16,6 +16,7 @@ import {
 
 export function useLearningProgress() {
   const { user, isLoaded, isSignedIn } = useUser();
+  const { getToken } = useAuth();
   const userId = user?.id || "guest_user";
 
   const [summary, setSummary] = useState<ProgressSummary>(() => ({
@@ -43,6 +44,8 @@ export function useLearningProgress() {
           username: user.username || user.firstName || "Learner",
           email: user.primaryEmailAddress?.emailAddress || null,
           avatarUrl: user.imageUrl || null,
+          firstName: user.firstName || "",
+          lastName: user.lastName || "",
         });
       }
 
@@ -63,6 +66,64 @@ export function useLearningProgress() {
   useEffect(() => {
     refreshProgress();
   }, [refreshProgress]);
+
+  // Synchronize Clerk user identity with Firebase Auth on sign-in
+  useEffect(() => {
+    const syncFirebase = async () => {
+      if (isLoaded && isSignedIn && user?.id) {
+        try {
+          console.log("Clerk User:", user.id);
+          console.log("Email:", user.primaryEmailAddress?.emailAddress);
+
+          console.log(`[DEBUG] Requesting Clerk Firebase JWT token for user ${user.id}...`);
+          let token: string | null = null;
+          try {
+            token = await getToken({ template: "integration-firebase" });
+          } catch (jwtErr: any) {
+            console.warn("[INFO] Clerk JWT template 'integration-firebase' not configured in Clerk Dashboard. Falling back to standard mode.");
+          }
+
+          if (token) {
+            console.log("[DEBUG] Clerk token retrieved. Initializing Firebase Auth...");
+            const { getAuth, signInWithCustomToken } = await import("firebase/auth");
+            const { getFirebaseDb } = await import("@/lib/firebase/client");
+            const db = getFirebaseDb();
+            if (db) {
+              const auth = getAuth(db.app);
+              console.log("Firebase Auth currentUser before sync:", auth.currentUser);
+              const result = await signInWithCustomToken(auth, token);
+              console.log("[DEBUG] Firebase Auth successfully signed in using Clerk Custom Token.");
+              console.log("firebaseUser.uid:", result.user.uid);
+              console.log("Firebase Auth currentUser after sync:", auth.currentUser);
+              // Trigger reload of user progress once authenticated to guarantee fresh access
+              refreshProgress();
+            }
+          } else {
+            console.info("[INFO] Standard session active without Clerk-Firebase custom token link.");
+          }
+        } catch (err) {
+          console.error("[ERROR] Failed to synchronize Clerk Auth with Firebase Auth:", err);
+        }
+      }
+    };
+    syncFirebase();
+  }, [isLoaded, isSignedIn, user?.id, getToken, refreshProgress]);
+
+  // Synchronize Clerk user identity with Firebase Analytics on sign-in
+  useEffect(() => {
+    if (isLoaded && isSignedIn && user?.id) {
+      import("@/lib/firebase/client").then(({ getFirebaseAnalytics }) => {
+        getFirebaseAnalytics().then((analytics) => {
+          if (analytics) {
+            import("firebase/analytics").then(({ setUserId, logEvent }) => {
+              setUserId(analytics, user.id);
+              logEvent(analytics, "login", { method: "Clerk" });
+            });
+          }
+        });
+      });
+    }
+  }, [isLoaded, isSignedIn, user?.id]);
 
   // Record activity directly to Supabase
   const recordActivity = useCallback(

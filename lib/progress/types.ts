@@ -2,12 +2,19 @@ export type LearningMode = "Story" | "Sandbox" | "Challenge";
 
 export interface UserProfile {
   id?: string;
-  clerk_user_id: string;
+  clerk_user_id?: string;
+  clerkUserId?: string;
   username?: string | null;
   email?: string | null;
   avatar_url?: string | null;
+  avatar?: string | null;
+  firstName?: string;
+  lastName?: string;
   created_at?: string;
   updated_at?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  lastLogin?: string;
 }
 
 export interface UserProgress {

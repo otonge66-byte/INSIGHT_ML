@@ -16,6 +16,8 @@ import { useStoryMode } from "@/lib/story/useStoryMode";
 import { useChallengeMode } from "@/lib/challenge/useChallengeMode";
 import { gradientDescentWalkthrough } from "@/lib/story/walkthroughs/gradientDescent";
 import { gradientDescentChallenge } from "@/lib/challenge/challenges";
+import { MathFormulaPanel } from "@/components/ui/MathFormulaPanel";
+import { GradientHouseProject } from "@/components/projects/GradientHouseProject";
 import { LossPreset, Point2D } from "@/modules/gradient-descent/types";
 import {
   PRESETS,
@@ -26,11 +28,20 @@ import {
 
 const DEFAULT_START: Point2D = { x: -3.5, y: 3.5 };
 
-type AppMode = "select" | "story" | "sandbox" | "challenge";
+type AppMode = "select" | "story" | "sandbox" | "challenge" | "project";
 
 export default function GradientDescentPlayground() {
   const router = useRouter();
   const [appMode, setAppMode] = useState<AppMode>("select");
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get("mode") === "project") {
+        setAppMode("project");
+      }
+    }
+  }, []);
 
   const [preset, setPreset] = useState<LossPreset>("bowl");
   const [startPoint, setStartPoint] = useState<Point2D>(DEFAULT_START);
@@ -213,20 +224,20 @@ export default function GradientDescentPlayground() {
             <p className="text-[#a3b18a] text-xl">Choose your experience:</p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 w-full">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
             {/* Story Mode card */}
             <button
               onClick={enterStoryMode}
-              className="group bg-[#281b12] border-4 border-[#386641] shadow-[6px_6px_0px_0px_#0f0a07] p-6 text-left flex flex-col gap-3 hover:bg-[#2e2214] hover:-translate-y-1 transition-all active:translate-y-0 active:shadow-[2px_2px_0px_0px_#0f0a07]"
+              className="group bg-[#281b12] border-4 border-[#386641] shadow-[6px_6px_0px_0px_#0f0a07] p-5 text-left flex flex-col gap-3 hover:bg-[#2e2214] hover:-translate-y-1 transition-all active:translate-y-0 active:shadow-[2px_2px_0px_0px_#0f0a07]"
             >
               <div className="text-4xl">📖</div>
               <div>
-                <h2 className="font-pixel text-[12px] text-[#dda15e] uppercase mb-2">Story Mode</h2>
-                <p className="text-[#a3b18a] text-lg leading-snug">
+                <h2 className="font-pixel text-[12px] text-[#dda15e] uppercase mb-1">Story Mode</h2>
+                <p className="text-[#a3b18a] text-base leading-snug">
                   Guided walkthrough with BYTE. Learn loss surfaces and learning rate dynamics.
                 </p>
               </div>
-              <span className="font-pixel text-[10px] text-[#386641] border border-[#386641] px-2 py-1 self-start">
+              <span className="font-pixel text-[9px] text-[#386641] border border-[#386641] px-2 py-1 self-start mt-auto">
                 ▶ START TUTORIAL
               </span>
             </button>
@@ -234,16 +245,16 @@ export default function GradientDescentPlayground() {
             {/* Challenge Mode card */}
             <button
               onClick={enterChallengeMode}
-              className="group bg-[#281b12] border-4 border-[#dda15e] shadow-[6px_6px_0px_0px_#0f0a07] p-6 text-left flex flex-col gap-3 hover:bg-[#2e2214] hover:-translate-y-1 transition-all active:translate-y-0 active:shadow-[2px_2px_0px_0px_#0f0a07]"
+              className="group bg-[#281b12] border-4 border-[#dda15e] shadow-[6px_6px_0px_0px_#0f0a07] p-5 text-left flex flex-col gap-3 hover:bg-[#2e2214] hover:-translate-y-1 transition-all active:translate-y-0 active:shadow-[2px_2px_0px_0px_#0f0a07]"
             >
               <div className="text-4xl">🏆</div>
               <div>
-                <h2 className="font-pixel text-[12px] text-[#dda15e] uppercase mb-2">Challenge Mode</h2>
-                <p className="text-[#a3b18a] text-lg leading-snug">
+                <h2 className="font-pixel text-[12px] text-[#dda15e] uppercase mb-1">Challenge Mode</h2>
+                <p className="text-[#a3b18a] text-base leading-snug">
                   &quot;{gradientDescentChallenge.title}&quot; — {gradientDescentChallenge.goalSummary}
                 </p>
               </div>
-              <span className="font-pixel text-[10px] text-[#dda15e] border border-[#dda15e] px-2 py-1 self-start">
+              <span className="font-pixel text-[9px] text-[#dda15e] border border-[#dda15e] px-2 py-1 self-start mt-auto">
                 ▶ START CHALLENGE
               </span>
             </button>
@@ -251,17 +262,34 @@ export default function GradientDescentPlayground() {
             {/* Sandbox Mode card */}
             <button
               onClick={enterSandboxMode}
-              className="group bg-[#281b12] border-4 border-[#382219] shadow-[6px_6px_0px_0px_#0f0a07] p-6 text-left flex flex-col gap-3 hover:bg-[#2e2214] hover:-translate-y-1 transition-all active:translate-y-0 active:shadow-[2px_2px_0px_0px_#0f0a07]"
+              className="group bg-[#281b12] border-4 border-[#382219] shadow-[6px_6px_0px_0px_#0f0a07] p-5 text-left flex flex-col gap-3 hover:bg-[#2e2214] hover:-translate-y-1 transition-all active:translate-y-0 active:shadow-[2px_2px_0px_0px_#0f0a07]"
             >
               <div className="text-4xl">🔬</div>
               <div>
-                <h2 className="font-pixel text-[12px] text-[#dda15e] uppercase mb-2">Sandbox Mode</h2>
-                <p className="text-[#a3b18a] text-lg leading-snug">
+                <h2 className="font-pixel text-[12px] text-[#dda15e] uppercase mb-1">Sandbox Mode</h2>
+                <p className="text-[#a3b18a] text-base leading-snug">
                   Jump straight in. Experiment with surfaces, learning rates, and start points.
                 </p>
               </div>
-              <span className="font-pixel text-[10px] text-[#a3b18a] border border-[#382219] px-2 py-1 self-start">
+              <span className="font-pixel text-[9px] text-[#a3b18a] border border-[#382219] px-2 py-1 self-start mt-auto">
                 ▶ FREE EXPLORE
+              </span>
+            </button>
+
+            {/* Applied Project Mode card */}
+            <button
+              onClick={() => setAppMode("project")}
+              className="group bg-[#281b12] border-4 border-[#dda15e] shadow-[6px_6px_0px_0px_#0f0a07] p-5 text-left flex flex-col gap-3 hover:bg-[#2e2214] hover:-translate-y-1 transition-all active:translate-y-0 active:shadow-[2px_2px_0px_0px_#0f0a07]"
+            >
+              <div className="text-4xl">🛠️</div>
+              <div>
+                <h2 className="font-pixel text-[12px] text-[#dda15e] uppercase mb-1">Applied Project</h2>
+                <p className="text-[#a3b18a] text-base leading-snug">
+                  Real Estate &amp; House Price Estimator.
+                </p>
+              </div>
+              <span className="font-pixel text-[9px] text-[#dda15e] border border-[#dda15e] px-2 py-1 self-start mt-auto">
+                ▶ BUILD PROJECT
               </span>
             </button>
           </div>
@@ -293,6 +321,13 @@ export default function GradientDescentPlayground() {
               >
                 CHALLENGE ↺
               </button>
+            ) : appMode === "project" ? (
+              <button
+                onClick={() => setAppMode("select")}
+                className="text-[#dda15e] hover:text-[#fefae0] font-pixel text-[10px] border border-[#7a5225] px-2.5 py-1 transition-colors cursor-pointer"
+              >
+                PROJECT ↺
+              </button>
             ) : (
               <button
                 onClick={() => setAppMode("select")}
@@ -301,6 +336,26 @@ export default function GradientDescentPlayground() {
                 SANDBOX ↺
               </button>
             )}
+
+            {/* Mode selector quick tabs */}
+            <div className="flex items-center gap-1.5 ml-2">
+              <button
+                onClick={() => setAppMode("sandbox")}
+                className={`px-2 py-1 font-pixel text-[9px] uppercase border ${
+                  appMode === "sandbox" ? "bg-[#382219] text-[#dda15e] border-[#dda15e]" : "text-[#a3b18a] border-[#382219]"
+                }`}
+              >
+                🔬 Sandbox
+              </button>
+              <button
+                onClick={() => setAppMode("project")}
+                className={`px-2 py-1 font-pixel text-[9px] uppercase border ${
+                  appMode === "project" ? "bg-[#dda15e] text-[#1e140e] border-[#7a5225]" : "text-[#dda15e] border-[#7a5225]"
+                }`}
+              >
+                🛠️ Apply It
+              </button>
+            </div>
           </div>
 
           {/* Right Navigation: Module Tabs & Profile */}
@@ -336,19 +391,31 @@ export default function GradientDescentPlayground() {
         </div>
       </header>
 
-      {/* Main Content Grid */}
-      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        {/* Left Column: 2D Contour Canvas */}
-        <div id="story-gd-canvas" className="lg:col-span-7 flex flex-col items-center lg:items-start">
-          <GradientDescentCanvas
-            path={path}
-            preset={preset}
-            onSetStartPoint={handleSetStartPoint}
-            width={600}
-            height={600}
-            range={5}
-          />
+      {/* Applied Project View OR Interactive Canvas Grid */}
+      {appMode === "project" ? (
+        <div className="max-w-7xl mx-auto">
+          <GradientHouseProject />
         </div>
+      ) : (
+        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          {/* Left Column: 2D Contour Canvas & Math Formula Panel */}
+          <div id="story-gd-canvas" className="lg:col-span-7 flex flex-col items-center lg:items-start w-full">
+            <GradientDescentCanvas
+              path={path}
+              preset={preset}
+              onSetStartPoint={handleSetStartPoint}
+              width={600}
+              height={600}
+              range={5}
+            />
+            {/* Math Formula Panel below Canvas */}
+            <MathFormulaPanel
+              type="gradient-descent"
+              learningRate={learningRate}
+              gradNorm={gradNorm}
+              currentLoss={currentLoss}
+            />
+          </div>
 
         {/* Right Column: Controls, Chart, & Readout */}
         <div className="lg:col-span-5 flex flex-col gap-6 w-full">
@@ -494,6 +561,7 @@ export default function GradientDescentPlayground() {
           </div>
         </div>
       </div>
+    )}
 
       {/* ── Story Mode Dialogue Overlay ───────────────────────────────────── */}
       {appMode === "story" && story.currentStep && (

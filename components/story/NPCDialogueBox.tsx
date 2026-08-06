@@ -5,6 +5,77 @@ import Image from "next/image";
 import { useTypewriter } from "@/lib/story/useTypewriter";
 import { StoryStep, WalkthroughScript } from "@/lib/story/types";
 import { ByteSprite } from "@/components/sprites/ByteSprite";
+import { GLOSSARY_TERMS, GlossaryTerm } from "@/lib/story/glossary";
+
+const GlossaryTooltip: React.FC<{ term: GlossaryTerm; text: string }> = ({ term, text }) => {
+  const [isOpen, setIsOpen] = React.useState(false);
+
+  return (
+    <span className="relative inline-block">
+      <span
+        onClick={() => setIsOpen((prev) => !prev)}
+        onMouseEnter={() => setIsOpen(true)}
+        onMouseLeave={() => setIsOpen(false)}
+        className="underline decoration-dashed decoration-[#dda15e] underline-offset-4 text-[#dda15e] cursor-pointer hover:bg-[#382219] px-1 font-bold transition-all"
+      >
+        {text}
+      </span>
+      {isOpen && (
+        <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-72 bg-[#1e140e] border-4 border-[#dda15e] p-3 shadow-[6px_6px_0px_#0f0a07] text-[#fefae0] z-50 text-left font-sans text-xs pointer-events-none block">
+          <span className="font-pixel text-[10px] text-[#dda15e] uppercase block mb-1">
+            📖 BYTE Glossary: {term.term}
+          </span>
+          <span className="block text-[#fefae0] leading-snug mb-2 font-vt323 text-lg">
+            {term.definition}
+          </span>
+          {term.analogy && (
+            <span className="block bg-[#120a06] p-2 border border-[#5c3d2e] text-[#a3b18a] font-vt323 text-base leading-tight">
+              💡 <strong className="text-[#dda15e]">Analogy:</strong> {term.analogy}
+            </span>
+          )}
+          <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 border-x-8 border-x-transparent border-t-8 border-t-[#dda15e]" />
+        </span>
+      )}
+    </span>
+  );
+};
+
+const GlossaryTextRenderer: React.FC<{ text: string }> = ({ text }) => {
+  const sortedKeys = React.useMemo(() => {
+    return Object.keys(GLOSSARY_TERMS).sort((a, b) => b.length - a.length);
+  }, []);
+
+  if (!text) return null;
+
+  const escaped = sortedKeys.map((k) => k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
+  const regex = new RegExp(`\\b(${escaped})\\b`, "gi");
+
+  const parts = [];
+  let lastIndex = 0;
+  let match;
+
+  while ((match = regex.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push(text.substring(lastIndex, match.index));
+    }
+    const matchedText = match[0];
+    const key = matchedText.toLowerCase();
+    const termObj = GLOSSARY_TERMS[key];
+
+    if (termObj) {
+      parts.push(<GlossaryTooltip key={`${match.index}-${key}`} term={termObj} text={matchedText} />);
+    } else {
+      parts.push(matchedText);
+    }
+    lastIndex = regex.lastIndex;
+  }
+
+  if (lastIndex < text.length) {
+    parts.push(text.substring(lastIndex));
+  }
+
+  return <>{parts}</>;
+};
 
 interface NPCDialogueBoxProps {
   step: StoryStep;
@@ -152,13 +223,13 @@ export const NPCDialogueBox: React.FC<NPCDialogueBoxProps> = ({
 
             {/* Text + buttons column */}
             <div className="flex-1 flex flex-col min-h-[140px]">
-              {/* Dialogue text */}
+              {/* Dialogue text with BYTE Glossary Tooltips */}
               <div
                 ref={textRef}
-                className="flex-1 p-4 text-[#fefae0] leading-relaxed overflow-y-auto whitespace-pre-wrap"
+                className="flex-1 p-4 text-[#fefae0] leading-relaxed overflow-y-auto"
                 style={{ fontSize: "22px", minHeight: "100px", maxHeight: "180px" }}
               >
-                {displayedText}
+                <GlossaryTextRenderer text={displayedText} />
                 {/* Blinking cursor while typing */}
                 {!isDone && (
                   <span className="inline-block w-3 h-5 bg-[#dda15e] ml-0.5 align-middle animate-pulse" />

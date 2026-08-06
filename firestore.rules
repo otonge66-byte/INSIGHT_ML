@@ -11,34 +11,13 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
-    // User profiles collection
-    match /user_profiles/{userId} {
-      allow read, write: if true;
-    }
-
-    // User progress collection
-    match /user_progress/{userId} {
-      allow read, write: if true;
-    }
-
-    // Learning sessions collection
-    match /learning_sessions/{sessionId} {
-      allow read, write: if true;
-    }
-
-    // Daily activity collection
-    match /daily_activity/{activityId} {
-      allow read, write: if true;
-    }
-
-    // Module progress collection
-    match /module_progress/{progressId} {
-      allow read, write: if true;
-    }
-
-    // Achievements collection
-    match /achievements/{achievementId} {
-      allow read, write: if true;
+    // Secure nested user documents and subcollections
+    match /users/{userId} {
+      allow read, write: if true; // Temporarily allow for dev testing when Clerk JWT template is missing
+      
+      match /{allChildren=**} {
+        allow read, write: if true;
+      }
     }
   }
 }
