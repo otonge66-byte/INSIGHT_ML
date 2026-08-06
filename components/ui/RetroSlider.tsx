@@ -1,4 +1,4 @@
-import React, { useId } from "react";
+import React from "react";
 
 interface RetroSliderProps {
   label: string;
@@ -19,29 +19,24 @@ export const RetroSlider: React.FC<RetroSliderProps> = ({
   onChange,
   displayValue,
 }) => {
-  const id = useId();
   return (
-    <div className="font-sans flex flex-col gap-2 bg-[#22302B] border border-[#4E665B] p-3.5 rounded-xl">
-      <div className="flex justify-between items-center text-xs">
-        <label
-          htmlFor={id}
-          className="font-sans text-xs uppercase tracking-wider text-[#A6D8B8] font-semibold cursor-pointer"
-        >
+    <div className="font-vt323 flex flex-col gap-1.5 bg-[#1e140e] border-2 border-[#382219] p-3 shadow-[3px_3px_0px_0px_#0f0a07]">
+      <div className="flex justify-between items-center text-sm">
+        <span className="font-pixel text-[10px] uppercase tracking-wider text-[#a3b18a] font-bold">
           {label}
-        </label>
-        <span className="bg-[#182320] px-2 py-0.5 border border-[#4E665B] font-mono text-xs text-[#E9C46A] rounded">
+        </span>
+        <span className="bg-[#3e271c] px-2 py-0.5 border border-[#1e140e] font-vt323 text-lg text-[#dda15e]">
           {displayValue !== undefined ? displayValue : value}
         </span>
       </div>
       <input
-        id={id}
         type="range"
         min={min}
         max={max}
         step={step}
         value={value}
         onChange={(e) => onChange(parseFloat(e.target.value))}
-        className="w-full accent-[#6FCF97] cursor-pointer bg-[#182320] h-2 border border-[#4E665B] rounded-lg appearance-none"
+        className="w-full accent-[#dda15e] cursor-pointer bg-[#281b12] h-3 border-2 border-[#382219] rounded-none appearance-none"
       />
     </div>
   );

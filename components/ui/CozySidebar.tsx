@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ByteSprite } from "@/components/sprites/ByteSprite";
+import { useUser } from "@clerk/nextjs";
 
 const NAVIGATION_ITEMS = [
   { name: "Overview", href: "/", icon: "🏠", badge: "Dashboard" },
@@ -12,15 +12,7 @@ const NAVIGATION_ITEMS = [
   { name: "Neural Net", href: "/playground/neural-net", icon: "🧠", badge: "Forest" },
   { name: "Quests", href: "/#quests", icon: "📜", badge: "3/5" },
   { name: "Badges", href: "/#badges", icon: "🏆", badge: "4/8" },
-  { name: "Playground Map", href: "/#map", icon: "🗺️", badge: "Explore" },
-  { name: "Field Notes", href: "/#notes", icon: "📝", badge: "ML Docs" },
-];
-
-const DAILY_TIPS = [
-  "Train models with optimal learning rates for faster convergence!",
-  "Perceptrons draw straight decision lines. Hidden layers bend them into complex shapes!",
-  "Stuck in a local minimum? Try increasing momentum or adjusting the learning rate!",
-  "XOR needs hidden layers to solve—a single linear boundary cannot separate it!",
+  { name: "Projects", href: "/#projects", icon: "📁", badge: "New" },
 ];
 
 interface CozySidebarProps {
@@ -35,13 +27,20 @@ export const CozySidebar: React.FC<CozySidebarProps> = ({
   onCloseMobile,
 }) => {
   const pathname = usePathname();
-  const [tipIndex, setTipIndex] = useState(0);
+  let userName = "OM";
+  let isAuthenticated = true;
 
-  const handleNextTip = () => {
-    setTipIndex((prev) => (prev + 1) % DAILY_TIPS.length);
-  };
+  try {
+    const { user, isSignedIn } = useUser();
+    if (isSignedIn && user) {
+      userName = user.username || user.firstName || user.fullName || "OM";
+      isAuthenticated = true;
+    }
+  } catch (e) {
+    // Fallback if Clerk isn't initialized in static mode
+  }
 
-  // Close mobile drawer on ESC key press
+  // Close drawer on ESC key press
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape" && isMobileOpen && onCloseMobile) {
@@ -54,21 +53,31 @@ export const CozySidebar: React.FC<CozySidebarProps> = ({
 
   // Sidebar navigation content
   const sidebarContent = (
-    <div className="flex flex-col justify-between h-full min-h-[500px]">
+    <div className="flex flex-col justify-between h-full min-h-[520px]">
       <div>
-        {/* Brand Header */}
-        <div className="bg-[#2C3C35] border border-[#4E665B] rounded-xl p-3 text-center mb-6 relative overflow-hidden group">
-          <p className="font-sans text-[10px] uppercase tracking-widest text-[#8DA397]">
-            Welcome to
+        {/* Header Card */}
+        <div className="bg-[#121e17] border-2 border-[#2a5c30] rounded-none p-3.5 mb-5 relative overflow-hidden shadow-[2px_2px_0px_#000000]">
+          {onCloseMobile && (
+            <button
+              onClick={onCloseMobile}
+              className="absolute top-2.5 right-2.5 text-[#8fc99a] hover:text-[#7ecb8a] border border-[#2a5c30] hover:border-[#7ecb8a] w-6 h-6 flex items-center justify-center text-xs font-bold transition-colors cursor-pointer bg-[#0c1510]"
+              aria-label="Close menu"
+              title="Close Menu (Esc)"
+            >
+              ✕
+            </button>
+          )}
+          <p className="font-sans text-[10px] uppercase tracking-widest text-[#8fc99a] font-bold">
+            WELCOME TO
           </p>
-          <h1 className="font-pixel text-sm sm:text-base font-bold text-[#EAF4EE] mt-0.5">
-            InsightML
+          <h1 className="font-pixel text-sm sm:text-base font-bold text-[#7ecb8a] mt-0.5 uppercase tracking-wider">
+            INSIGHTML
           </h1>
-          <p className="font-sans text-xs text-[#6FCF97] mt-0.5">Interactive Platform</p>
+          <p className="font-sans text-xs text-[#56a66a] mt-0.5">Interactive Platform</p>
         </div>
 
         {/* Navigation Items */}
-        <nav className="space-y-1 font-sans text-sm">
+        <nav className="space-y-1.5 font-sans text-sm">
           {NAVIGATION_ITEMS.map((item) => {
             const isActive =
               item.href === "/"
@@ -82,20 +91,22 @@ export const CozySidebar: React.FC<CozySidebarProps> = ({
                 onClick={() => {
                   if (onCloseMobile) onCloseMobile();
                 }}
-                className={`flex items-center justify-between px-3 py-2.5 rounded-lg transition-colors ${
+                className={`flex items-center justify-between px-3 py-2.5 rounded-none transition-colors ${
                   isActive
-                    ? "bg-[#2C3C35] text-[#EAF4EE] font-medium border-l-4 border-[#6FCF97]"
-                    : "text-[#C9D7CF] hover:bg-[#2C3C35] hover:text-[#EAF4EE]"
+                    ? "bg-[#1c2d23] text-[#7ecb8a] font-medium border-l-4 border-[#7ecb8a] shadow-[2px_2px_0px_#000000]"
+                    : "text-[#C9D7CF] hover:bg-[#1c2d23] hover:text-[#7ecb8a]"
                 }`}
               >
                 <div className="flex items-center gap-2.5">
                   <span className="text-sm">{item.icon}</span>
-                  <span className="whitespace-nowrap">{item.name}</span>
+                  <span className="whitespace-nowrap font-pixel text-[11px] tracking-wide">
+                    {item.name}
+                  </span>
                 </div>
                 {isActive ? (
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#6FCF97] shrink-0" />
+                  <span className="w-1.5 h-1.5 rounded-none bg-[#7ecb8a] shrink-0" />
                 ) : (
-                  <span className="text-[10px] text-[#8DA397] bg-[#182320] px-1.5 py-0.5 rounded border border-[#4E665B]/40 font-mono shrink-0">
+                  <span className="text-[9px] text-[#8fc99a] bg-[#0c1510] px-1.5 py-0.5 rounded-none border border-[#2a5c30] font-mono shrink-0">
                     {item.badge}
                   </span>
                 )}
@@ -105,27 +116,24 @@ export const CozySidebar: React.FC<CozySidebarProps> = ({
         </nav>
       </div>
 
-      {/* Daily Tip Card at Bottom */}
-      <div className="mt-6 pt-4 border-t border-[#4E665B]/40">
-        <div
-          onClick={handleNextTip}
-          className="bg-[#2C3C35] border border-[#4E665B] rounded-xl p-3 cursor-pointer hover:bg-[#33463E] transition-colors relative"
-          title="Click for next tip"
-        >
-          <div className="flex items-center gap-2.5 mb-2">
-            <div className="w-7 h-7 shrink-0 bg-[#22302B] rounded-full flex items-center justify-center border border-[#4E665B] overflow-hidden">
-              <ByteSprite scale={2} />
-            </div>
-            <div>
-              <p className="font-pixel text-[9px] font-bold uppercase text-[#E9C46A] leading-tight">
-                Byte&apos;s Pro Tip
-              </p>
-              <p className="font-sans text-[11px] text-[#8DA397]">Click to refresh</p>
+      {/* Footer Profile Container */}
+      <div className="mt-6 pt-4 border-t border-[#2a5c30]">
+        <div className="bg-[#121e17] border-2 border-[#2a5c30] rounded-none p-3 shadow-[2px_2px_0px_#000000] flex items-center gap-3">
+          {/* Avatar N Logo Box */}
+          <div className="w-8 h-8 shrink-0 bg-[#0c1510] border-2 border-[#2a5c30] text-[#7ecb8a] font-pixel text-sm flex items-center justify-center font-bold shadow-[1px_1px_0px_#000000]">
+            N
+          </div>
+          <div className="flex flex-col min-w-0">
+            <p className="font-pixel text-xs text-[#7ecb8a] font-bold uppercase truncate">
+              {userName}
+            </p>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <span className="w-1.5 h-1.5 rounded-none bg-[#56a66a] animate-pulse shrink-0" />
+              <span className="font-sans text-[10px] text-[#8fc99a] tracking-wider uppercase font-medium">
+                {isAuthenticated ? "Authenticated" : "Guest Mode"}
+              </span>
             </div>
           </div>
-          <p className="font-sans text-xs text-[#C9D7CF] leading-relaxed italic bg-[#182320] p-2.5 rounded-lg border border-[#4E665B]/60">
-            &ldquo;{DAILY_TIPS[tipIndex]}&rdquo;
-          </p>
         </div>
       </div>
     </div>
@@ -133,40 +141,19 @@ export const CozySidebar: React.FC<CozySidebarProps> = ({
 
   return (
     <>
-      {/* ── MOBILE OVERLAY DRAWER ── */}
-      {/* Backdrop */}
+      {/* ── OVERLAY BACKDROP ── */}
       {isMobileOpen && (
         <div
           onClick={onCloseMobile}
-          className="fixed inset-0 bg-[#182320]/80 backdrop-blur-xs z-40 md:hidden transition-opacity duration-300"
+          className="fixed inset-0 bg-[#070f09]/80 backdrop-blur-xs z-40 transition-opacity duration-300"
           aria-hidden="true"
         />
       )}
 
-      {/* Mobile Drawer */}
+      {/* ── FIXED SLIDE-OUT SIDEBAR DRAWER ── */}
       <aside
-        className={`fixed top-0 left-0 bottom-0 z-50 w-72 max-w-[85vw] bg-[#22302B] border-r border-[#4E665B] p-4 transition-transform duration-300 ease-in-out md:hidden shadow-2xl overflow-y-auto ${
+        className={`fixed top-0 left-0 bottom-0 z-50 w-72 max-w-[85vw] bg-[#121e17] border-r-2 border-[#2a5c30] p-4 transition-transform duration-300 ease-in-out shadow-2xl overflow-y-auto ${
           isMobileOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
-      >
-        <div className="flex justify-end mb-2">
-          <button
-            onClick={onCloseMobile}
-            className="text-[#8DA397] hover:text-[#EAF4EE] text-sm p-1 rounded-lg border border-[#4E665B]/40"
-            aria-label="Close Mobile Navigation"
-          >
-            ✕
-          </button>
-        </div>
-        {sidebarContent}
-      </aside>
-
-      {/* ── DESKTOP COLLAPSIBLE SIDEBAR ── */}
-      <aside
-        className={`hidden md:flex flex-col shrink-0 bg-[#22302B] text-[#C9D7CF] border-r border-[#4E665B] min-h-screen transition-all duration-300 ease-in-out ${
-          isCollapsed
-            ? "w-0 p-0 opacity-0 overflow-hidden border-r-0 pointer-events-none"
-            : "w-64 p-4 opacity-100"
         }`}
       >
         {sidebarContent}
@@ -174,3 +161,4 @@ export const CozySidebar: React.FC<CozySidebarProps> = ({
     </>
   );
 };
+

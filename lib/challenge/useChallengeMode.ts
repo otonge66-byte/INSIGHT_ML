@@ -3,6 +3,8 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { ChallengeDefinition, ChallengeMetrics } from "./types";
 import { saveChallengeProgress, getSavedChallengeProgress, SavedChallengeProgress } from "./storage";
+import { recordLearningActivity } from "@/lib/progress/progressService";
+import { XP_RATES } from "@/lib/progress/types";
 
 export type ChallengeStatus = "idle" | "running" | "requirements_met" | "verifying" | "completed" | "saved";
 
@@ -84,12 +86,26 @@ export function useChallengeMode(challenge: ChallengeDefinition): UseChallengeRe
     setLastMetrics(metrics);
     setStatus("completed");
 
-    // Save to localStorage
+    // Save challenge progress state
     const saved = saveChallengeProgress(challengeRef.current.id, computedStars, metrics, 100);
     if (saved) {
       setSavedProgress(saved);
       setStatus("saved");
-      console.log("💾 [Progress Saved to localStorage]", saved);
+    }
+
+    // Automatically trigger Supabase / Progress update
+    try {
+      const xp = computedStars === 3 ? XP_RATES.PERFECT_CHALLENGE : XP_RATES.CHALLENGE;
+      recordLearningActivity({
+        userId: "clerk_user", // Will be replaced by active Clerk ID in progressService/client
+        moduleName: challengeRef.current.id,
+        mode: "Challenge",
+        xpEarned: xp,
+        completedChallengeId: challengeRef.current.id,
+        durationMinutes: 3,
+      });
+    } catch (e) {
+      console.warn("Auto-progress recording notice:", e);
     }
 
     console.log("Opening Popup");

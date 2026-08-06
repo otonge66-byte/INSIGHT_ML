@@ -48,14 +48,14 @@ export const CozyHeader: React.FC<CozyHeaderProps> = ({
   }, []);
 
   return (
-    <header className="w-full bg-[#22302B] border-b border-[#4E665B] px-4 sm:px-6 py-3.5 flex flex-col md:flex-row md:items-center md:justify-between gap-3.5 relative z-20">
+    <header className="w-full bg-[#211813] border-b-2 border-[#6C4A33] px-4 sm:px-6 py-3.5 flex flex-col md:flex-row md:items-center md:justify-between gap-3.5 relative z-20">
       {/* Left Header Section: Hamburger + Back Button + Greeting */}
       <div className="flex items-center gap-3 shrink-0">
         {/* Hamburger Menu Toggle Button (☰) */}
         {onToggleSidebar && (
           <button
             onClick={onToggleSidebar}
-            className="bg-[#2C3C35] hover:bg-[#33463E] text-[#6FCF97] border border-[#4E665B] rounded-xl px-3 py-1.5 transition-colors duration-200 flex items-center justify-center text-sm font-bold cursor-pointer shrink-0 shadow-xs"
+            className="bg-[#2B1E17] hover:bg-[#38251B] text-[#D79A55] border-2 border-[#6C4A33] rounded-none px-3 py-1.5 transition-colors duration-150 flex items-center justify-center text-sm font-bold cursor-pointer shrink-0 shadow-[2px_2px_0px_#000000]"
             aria-label="Toggle Navigation Sidebar"
             title="Toggle Navigation Menu"
           >
@@ -70,11 +70,11 @@ export const CozyHeader: React.FC<CozyHeaderProps> = ({
         )}
 
         <div>
-          <h1 className="font-pixel text-sm sm:text-base font-bold text-[#EAF4EE] tracking-wide">
+          <h1 className="font-pixel text-sm sm:text-base font-bold text-[#F0D6A2] tracking-wide">
             {title}
           </h1>
           {subtitle && (
-            <p className="font-sans text-xs text-[#8DA397] mt-0.5">
+            <p className="font-sans text-xs text-[#B89C76] mt-0.5">
               {subtitle}
             </p>
           )}
@@ -82,23 +82,23 @@ export const CozyHeader: React.FC<CozyHeaderProps> = ({
       </div>
 
       {/* Right Widget Bar: Date, Clock, System Status (🟢 ONLINE), Auth Button */}
-      <div className="flex items-center gap-2.5 font-sans text-xs text-[#C9D7CF] flex-wrap shrink-0">
+      <div className="flex items-center gap-2.5 font-sans text-xs text-[#F0D6A2] flex-wrap shrink-0">
         {/* Date */}
-        <div className="flex items-center gap-1.5 bg-[#2C3C35] hover:bg-[#33463E] px-3 py-1.5 rounded-xl border border-[#4E665B] transition-colors duration-200">
+        <div className="flex items-center gap-1.5 bg-[#2B1E17] hover:bg-[#38251B] px-3 py-1.5 rounded-none border-2 border-[#6C4A33] shadow-[2px_2px_0px_#000000] transition-colors duration-150">
           <span>📅</span>
-          <span className="font-medium text-[#EAF4EE]">{dateStr}</span>
+          <span className="font-medium text-[#F0D6A2]">{dateStr}</span>
         </div>
 
         {/* Clock */}
-        <div className="flex items-center gap-1.5 bg-[#2C3C35] hover:bg-[#33463E] px-3 py-1.5 rounded-xl border border-[#4E665B] transition-colors duration-200">
+        <div className="flex items-center gap-1.5 bg-[#2B1E17] hover:bg-[#38251B] px-3 py-1.5 rounded-none border-2 border-[#6C4A33] shadow-[2px_2px_0px_#000000] transition-colors duration-150">
           <span>⏰</span>
-          <span className="font-medium text-[#EAF4EE]">{timeStr}</span>
+          <span className="font-medium text-[#F0D6A2]">{timeStr}</span>
         </div>
 
-        {/* System Status: 🟢 ONLINE */}
-        <div className="flex items-center gap-1.5 bg-[#2C3C35] hover:bg-[#33463E] px-3 py-1.5 rounded-xl border border-[#4E665B] transition-colors duration-200">
-          <span className="w-2 h-2 rounded-full bg-[#6FCF97] animate-pulse" />
-          <span className="font-mono text-xs font-bold text-[#6FCF97]">ONLINE</span>
+        {/* System Status: ONLINE */}
+        <div className="flex items-center gap-1.5 bg-[#2B1E17] hover:bg-[#38251B] px-3 py-1.5 rounded-none border-2 border-[#6C4A33] shadow-[2px_2px_0px_#000000] transition-colors duration-150">
+          <span className="w-2 h-2 rounded-none bg-[#5D8E58] animate-pulse" />
+          <span className="font-mono text-xs font-bold text-[#5D8E58]">ONLINE</span>
         </div>
 
         {/* Clerk Auth / Guest Avatar Button */}

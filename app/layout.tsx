@@ -1,23 +1,30 @@
 import type { Metadata } from "next";
 import { Press_Start_2P, VT323, Inter } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
+import { GlobalNavigation } from "@/components/ui/GlobalNavigation";
 import "./globals.css";
 
 const pressStart = Press_Start_2P({
   weight: "400",
   subsets: ["latin"],
   variable: "--font-pixel",
+  display: "swap",
+  fallback: ["monospace"],
 });
 
 const vt323 = VT323({
   weight: "400",
   subsets: ["latin"],
   variable: "--font-vt323",
+  display: "swap",
+  fallback: ["monospace"],
 });
 
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-sans",
+  display: "swap",
+  fallback: ["system-ui", "sans-serif"],
 });
 
 export const metadata: Metadata = {
@@ -63,7 +70,7 @@ export default function RootLayout({
         className={`${pressStart.variable} ${vt323.variable} ${inter.variable} h-full antialiased`}
       >
         <body className="min-h-full bg-[#182320] text-[#C9D7CF] font-sans flex flex-col selection:bg-[#6FCF97] selection:text-[#182320]">
-          {children}
+          <GlobalNavigation>{children}</GlobalNavigation>
         </body>
       </html>
     </ClerkProvider>

@@ -9,50 +9,31 @@ export interface SavedChallengeProgress {
   metrics: ChallengeMetrics;
 }
 
-const STORAGE_KEY = "insightml_challenges_progress";
+// In-memory runtime state container (No localStorage)
+const inMemoryChallengeStore: Record<string, SavedChallengeProgress> = {};
 
 export function saveChallengeProgress(
   challengeId: string,
   stars: 1 | 2 | 3,
   metrics: ChallengeMetrics,
   xp: number = 100
-): SavedChallengeProgress | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const existingRaw = localStorage.getItem(STORAGE_KEY);
-    const existing: Record<string, SavedChallengeProgress> = existingRaw
-      ? JSON.parse(existingRaw)
-      : {};
+): SavedChallengeProgress {
+  const prevStars = inMemoryChallengeStore[challengeId]?.stars || 1;
+  const finalStars = Math.max(stars, prevStars) as 1 | 2 | 3;
 
-    const prevStars = existing[challengeId]?.stars || 1;
-    const finalStars = (Math.max(stars, prevStars) as 1 | 2 | 3);
+  const record: SavedChallengeProgress = {
+    challengeId,
+    isCompleted: true,
+    stars: finalStars,
+    xpEarned: xp,
+    completedAt: new Date().toISOString(),
+    metrics,
+  };
 
-    const record: SavedChallengeProgress = {
-      challengeId,
-      isCompleted: true,
-      stars: finalStars,
-      xpEarned: xp,
-      completedAt: new Date().toISOString(),
-      metrics,
-    };
-
-    existing[challengeId] = record;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(existing));
-    return record;
-  } catch (e) {
-    console.error("Failed to save challenge progress to localStorage:", e);
-    return null;
-  }
+  inMemoryChallengeStore[challengeId] = record;
+  return record;
 }
 
 export function getSavedChallengeProgress(challengeId: string): SavedChallengeProgress | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const existingRaw = localStorage.getItem(STORAGE_KEY);
-    if (!existingRaw) return null;
-    const existing: Record<string, SavedChallengeProgress> = JSON.parse(existingRaw);
-    return existing[challengeId] || null;
-  } catch (e) {
-    return null;
-  }
+  return inMemoryChallengeStore[challengeId] || null;
 }

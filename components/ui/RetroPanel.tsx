@@ -2,44 +2,27 @@ import React from "react";
 
 interface RetroPanelProps {
   title?: string;
-  icon?: string;
-  actionText?: string;
-  onAction?: () => void;
   children: React.ReactNode;
   className?: string;
-  variant?: "cozy" | "retro";
   borderColor?: string;
 }
 
 export const RetroPanel: React.FC<RetroPanelProps> = ({
   title,
-  icon = "🍃",
-  actionText,
-  onAction,
   children,
   className = "",
-  borderColor = "border-[#4E665B]",
+  borderColor = "border-[#382219]",
 }) => {
   return (
     <div
-      className={`bg-[#2C3C35] hover:bg-[#33463E] border ${borderColor} p-5 rounded-2xl shadow-sm hover:-translate-y-0.5 hover:scale-[1.01] transition-all duration-200 font-sans ${className}`}
+      className={`bg-[#281b12] border-4 ${borderColor} p-4 shadow-[6px_6px_0px_0px_#0f0a07] font-vt323 rounded-none ${className}`}
     >
       {title && (
-        <div className="flex items-center justify-between mb-4 pb-3 border-b border-[#4E665B]/60">
-          <div className="flex items-center gap-2">
-            {icon && <span className="text-sm">{icon}</span>}
-            <h2 className="font-pixel text-xs font-bold uppercase tracking-wider text-[#EAF4EE]">
-              {title}
-            </h2>
-          </div>
-          {actionText && (
-            <button
-              onClick={onAction}
-              className="font-sans text-xs text-[#6FCF97] hover:text-[#A6D8B8] transition-colors cursor-pointer"
-            >
-              {actionText}
-            </button>
-          )}
+        <div className="bg-[#3e271c] border-2 border-[#1e140e] px-3 py-1.5 mb-4 flex items-center justify-between shadow-[2px_2px_0px_0px_#0f0a07]">
+          <h2 className="font-pixel text-[11px] sm:text-xs font-bold uppercase tracking-wider text-[#dda15e]">
+            {title}
+          </h2>
+          <span className="inline-block w-2.5 h-2.5 bg-[#a3b18a] border border-[#1e140e]" />
         </div>
       )}
       {children}

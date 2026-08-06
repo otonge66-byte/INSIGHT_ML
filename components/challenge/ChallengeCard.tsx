@@ -9,6 +9,10 @@ interface ChallengeCardProps {
   isWon: boolean;
 }
 
+/**
+ * Live progress card shown in the right column during Challenge Mode.
+ * Displays the challenge goal, a progress bar, and current metrics.
+ */
 export const ChallengeCard: React.FC<ChallengeCardProps> = ({
   challenge,
   metrics,
@@ -17,75 +21,74 @@ export const ChallengeCard: React.FC<ChallengeCardProps> = ({
   const percent = challenge.getProgressPercent(metrics);
   const label = challenge.getProgressLabel(metrics);
 
-  const isNNModule = challenge.module === "neural-net";
-  const hasAccuracy = (metrics.nnAccuracy ?? 0) >= 100;
-  const isWrongArch = isNNModule && hasAccuracy && (metrics.hiddenSize !== 2 || metrics.numHiddenLayers !== 1);
-
   return (
-    <div className="bg-[#2C3C35] border border-[#4E665B] rounded-2xl p-5 shadow-sm font-sans flex flex-col gap-3">
+    <div
+      className="bg-[#281b12] border-4 border-[#bc4749] shadow-[6px_6px_0px_0px_#0f0a07] overflow-hidden"
+      style={{ fontFamily: "var(--font-vt323), monospace" }}
+    >
       {/* Header strip */}
-      <div className="flex items-center justify-between pb-2.5 border-b border-[#4E665B]/60">
-        <div className="flex items-center gap-2">
-          <span className="text-base">🏆</span>
-          <span className="font-pixel text-xs font-bold text-[#EAF4EE] uppercase tracking-wider">
-            Challenge: {challenge.title}
-          </span>
-        </div>
+      <div className="bg-[#bc4749] px-4 py-2 flex items-center gap-2">
+        <span className="text-xl">🏆</span>
+        <span
+          className="text-[#fefae0] uppercase tracking-wider"
+          style={{ fontFamily: "var(--font-pixel), monospace", fontSize: "11px" }}
+        >
+          Challenge: {challenge.title}
+        </span>
       </div>
 
       {/* Body */}
-      <div className="flex flex-col gap-3">
+      <div className="p-4 flex flex-col gap-3">
         {/* Goal */}
-        <p className="text-[#C9D7CF] text-xs leading-relaxed">
+        <p className="text-[#a3b18a] text-lg leading-snug">
           {challenge.description}
         </p>
 
         {/* Goal summary badge */}
         <div className="flex items-center gap-2">
-          <span className="font-pixel text-[9px] uppercase text-[#E9C46A] bg-[#22302B] border border-[#4E665B] px-2 py-0.5 rounded">
+          <span
+            className="font-pixel text-[9px] uppercase text-[#dda15e] border border-[#7a5225] px-2 py-0.5"
+            style={{ fontFamily: "var(--font-pixel), monospace" }}
+          >
             Goal
           </span>
-          <span className="text-[#EAF4EE] text-xs font-medium">{challenge.goalSummary}</span>
+          <span className="text-[#fefae0] text-lg">{challenge.goalSummary}</span>
         </div>
 
         {/* Progress bar */}
-        <div className="bg-[#182320] border border-[#4E665B] h-5 rounded-lg relative overflow-hidden">
+        <div className="bg-[#1e140e] border-2 border-[#382219] h-6 relative overflow-hidden">
           <div
             className="h-full transition-all duration-300 ease-out"
             style={{
               width: `${Math.min(100, Math.max(0, percent))}%`,
               background: isWon
-                ? "linear-gradient(90deg, #2C3C35, #6FCF97)"
+                ? "linear-gradient(90deg, #386641, #a3b18a)"
                 : percent >= 75
-                ? "linear-gradient(90deg, #2C3C35, #E9C46A)"
-                : "linear-gradient(90deg, #2C3C35, #A6D8B8)",
+                ? "linear-gradient(90deg, #dda15e, #e8c468)"
+                : "linear-gradient(90deg, #bc4749, #d96363)",
             }}
           />
           {/* Percentage text overlay */}
-          <span className="absolute inset-0 flex items-center justify-center text-[#EAF4EE] text-xs font-mono font-bold">
+          <span
+            className="absolute inset-0 flex items-center justify-center text-[#fefae0] text-sm font-bold"
+            style={{ textShadow: "1px 1px 0px #0f0a07" }}
+          >
             {Math.round(percent)}%
           </span>
         </div>
 
         {/* Metrics label */}
-        <p className="text-[#E9C46A] text-xs font-mono">
+        <p className="text-[#dda15e] text-lg">
           {label}
         </p>
 
-        {/* Informative Guidance Banner if 100% accuracy reached with wrong architecture */}
-        {isWrongArch && !isWon && (
-          <div className="bg-[#22302B] border border-[#E9C46A]/80 p-3 rounded-xl text-xs text-[#E9C46A] leading-relaxed">
-            <p className="font-bold mb-0.5">💡 Great Accuracy (100%)!</p>
-            <p className="text-[#C9D7CF]">
-              Now solve it again using <strong>only 2 hidden nodes in 1 layer</strong> to complete this minimal network challenge.
-            </p>
-          </div>
-        )}
-
         {/* Won badge */}
         {isWon && (
-          <div className="bg-[#22302B] border border-[#6FCF97] px-3 py-2 rounded-xl text-center">
-            <span className="font-pixel text-xs text-[#6FCF97] uppercase tracking-wider">
+          <div className="bg-[#386641] border-2 border-[#1b3521] px-3 py-1.5 text-center">
+            <span
+              className="text-[#fefae0] uppercase tracking-wider"
+              style={{ fontFamily: "var(--font-pixel), monospace", fontSize: "11px" }}
+            >
               ✓ Challenge Complete!
             </span>
           </div>

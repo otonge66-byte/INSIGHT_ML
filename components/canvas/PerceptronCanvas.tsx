@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useEffect, useState } from "react";
+import React, { useRef, useEffect } from "react";
 import {
   DataPoint,
   PerceptronWeights,
@@ -26,8 +26,6 @@ export const PerceptronCanvas: React.FC<PerceptronCanvasProps> = ({
   height = 600,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const [placementClass, setPlacementClass] = useState<1 | -1>(1);
-  const [kbCursor, setKbCursor] = useState<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -123,32 +121,7 @@ export const PerceptronCanvas: React.FC<PerceptronCanvasProps> = ({
       ctx.textBaseline = "middle";
       ctx.fillText(isClassA ? "+" : "−", px, py);
     });
-
-    // Keyboard navigation cursor (blinking crosshair outline)
-    if (kbCursor) {
-      const { px, py } = cartesianToCanvas(kbCursor.x, kbCursor.y, width, height);
-      ctx.strokeStyle = "#dda15e";
-      ctx.lineWidth = 2;
-      ctx.setLineDash([4, 4]);
-      // Horizontal crosshair line
-      ctx.beginPath();
-      ctx.moveTo(0, py);
-      ctx.lineTo(width, py);
-      // Vertical crosshair line
-      ctx.beginPath();
-      ctx.moveTo(px, 0);
-      ctx.lineTo(px, height);
-      ctx.stroke();
-      ctx.setLineDash([]); // reset
-
-      // Target ring
-      ctx.strokeStyle = "#fefae0";
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(px, py, 14, 0, Math.PI * 2);
-      ctx.stroke();
-    }
-  }, [points, weights, width, height, kbCursor]);
+  }, [points, weights, width, height]);
 
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
@@ -159,8 +132,7 @@ export const PerceptronCanvas: React.FC<PerceptronCanvasProps> = ({
     const py = e.clientY - rect.top;
 
     const { x, y } = canvasToCartesian(px, py, width, height);
-    // Right-click places opposite class, left-click places placementClass
-    const label: 1 | -1 = e.button === 2 ? (placementClass === 1 ? -1 : 1) : placementClass;
+    const label: 1 | -1 = e.button === 2 ? -1 : 1;
 
     const newPoint: DataPoint = {
       id: `${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
@@ -177,112 +149,24 @@ export const PerceptronCanvas: React.FC<PerceptronCanvasProps> = ({
     handleCanvasClick(e);
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLCanvasElement>) => {
-    if (!kbCursor) return;
-
-    const step = 0.05;
-    let nextX = kbCursor.x;
-    let nextY = kbCursor.y;
-    let handled = false;
-
-    if (e.key === "ArrowUp") {
-      nextY = Math.min(1.0, kbCursor.y + step);
-      handled = true;
-    } else if (e.key === "ArrowDown") {
-      nextY = Math.max(-1.0, kbCursor.y - step);
-      handled = true;
-    } else if (e.key === "ArrowLeft") {
-      nextX = Math.max(-1.0, kbCursor.x - step);
-      handled = true;
-    } else if (e.key === "ArrowRight") {
-      nextX = Math.min(1.0, kbCursor.x + step);
-      handled = true;
-    } else if (e.key === " " || e.key === "1") {
-      // Place Class A point
-      onAddPoint({
-        id: `${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
-        x: Number(kbCursor.x.toFixed(4)),
-        y: Number(kbCursor.y.toFixed(4)),
-        label: 1,
-      });
-      handled = true;
-    } else if (e.key === "Enter" || e.key === "2") {
-      // Place Class B point
-      onAddPoint({
-        id: `${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
-        x: Number(kbCursor.x.toFixed(4)),
-        y: Number(kbCursor.y.toFixed(4)),
-        label: -1,
-      });
-      handled = true;
-    }
-
-    if (handled) {
-      e.preventDefault();
-      setKbCursor({ x: nextX, y: nextY });
-    }
-  };
-
   return (
-    <div 
-      className="relative border-4 border-[#382219] shadow-[8px_8px_0px_0px_#0f0a07] bg-[#18110b] p-2 inline-block rounded-none w-full max-w-[624px]"
-      aria-label="Interactive classification canvas. Click or tap to place data points. Focus the canvas and use arrow keys to navigate a crosshair, pressing Space/1 for Class A (+1) or Enter/2 for Class B (-1)."
-    >
+    <div className="relative border-4 border-[#382219] shadow-[8px_8px_0px_0px_#0f0a07] bg-[#18110b] p-2 inline-block rounded-none">
       <canvas
         ref={canvasRef}
         width={width}
         height={height}
-        tabIndex={0}
         onClick={(e) => {
           if (e.button === 0) handleCanvasClick(e);
         }}
         onContextMenu={handleContextMenu}
-        onKeyDown={handleKeyDown}
-        onFocus={() => setKbCursor({ x: 0, y: 0 })}
-        onBlur={() => setKbCursor(null)}
-        className="cursor-crosshair block rounded-none w-full aspect-square bg-[#18110b] focus:outline-none"
+        className="cursor-crosshair block rounded-none"
       />
-      
-      {/* Screen Reader coordinate updates */}
-      {kbCursor && (
-        <span className="sr-only" aria-live="polite">
-          Crosshair position: X: {kbCursor.x.toFixed(2)}, Y: {kbCursor.y.toFixed(2)}
-        </span>
-      )}
-
-      {/* Placement class toggle for touch/mobile screens */}
-      <div className="flex items-center justify-between mt-3 px-1 border-t border-[#2c1e15] pt-3 w-full">
-        <span className="font-pixel text-[10px] text-[#a3b18a] uppercase">Active Brush:</span>
-        <div className="flex gap-2">
-          <button
-            onClick={() => setPlacementClass(1)}
-            className={`font-pixel text-[10px] px-3 py-1 border-2 transition-all cursor-pointer ${
-              placementClass === 1 
-                ? "bg-[#bc4749] text-[#fefae0] border-[#bc4749]" 
-                : "bg-transparent text-[#bc4749] border-[#382219] hover:border-[#bc4749]"
-            }`}
-          >
-            Class A (+)
-          </button>
-          <button
-            onClick={() => setPlacementClass(-1)}
-            className={`font-pixel text-[10px] px-3 py-1 border-2 transition-all cursor-pointer ${
-              placementClass === -1 
-                ? "bg-[#386641] text-[#fefae0] border-[#386641]" 
-                : "bg-transparent text-[#386641] border-[#382219] hover:border-[#386641]"
-            }`}
-          >
-            Class B (−)
-          </button>
-        </div>
-      </div>
-
-      <div className="flex justify-between items-center text-[10px] font-pixel text-[#fefae0] mt-3 px-1 border-t border-[#2c1e15] pt-2">
+      <div className="flex justify-between items-center text-sm font-vt323 text-[#fefae0] mt-2 px-1">
         <span>
-          TAP = <strong className="text-[#dda15e]">Place Active</strong>
+          LEFT CLICK = <strong className="text-[#bc4749] font-pixel text-xs">Class A (+1)</strong>
         </span>
-        <span className="hidden sm:inline">
-          RIGHT CLICK = <strong className="text-[#a3b18a]">Place Opposite</strong>
+        <span>
+          RIGHT CLICK = <strong className="text-[#386641] font-pixel text-xs">Class B (-1)</strong>
         </span>
       </div>
     </div>

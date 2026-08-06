@@ -1,0 +1,44 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // User profiles collection
+    match /user_profiles/{userId} {
+      allow read, write: if true;
+    }
+
+    // User progress collection
+    match /user_progress/{userId} {
+      allow read, write: if true;
+    }
+
+    // Learning sessions collection
+    match /learning_sessions/{sessionId} {
+      allow read, write: if true;
+    }
+
+    // Daily activity collection
+    match /daily_activity/{activityId} {
+      allow read, write: if true;
+    }
+
+    // Module progress collection
+    match /module_progress/{progressId} {
+      allow read, write: if true;
+    }
+
+    // Achievements collection
+    match /achievements/{achievementId} {
+      allow read, write: if true;
+    }
+  }
+}

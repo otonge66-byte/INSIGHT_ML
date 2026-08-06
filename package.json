@@ -9,9 +9,9 @@
   },
   "dependencies": {
     "@clerk/nextjs": "^7.6.5",
-    "@supabase/supabase-js": "^2.111.0",
     "@tensorflow/tfjs": "^4.22.0",
     "chart.js": "^4.5.1",
+    "firebase": "^12.17.1",
     "lucide-react": "^1.28.0",
     "next": "16.2.12",
     "react": "19.2.4",

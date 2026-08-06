@@ -39,11 +39,11 @@ export const LossChart: React.FC<LossChartProps> = ({ lossHistory }) => {
       {
         label: "Loss f(x, y)",
         data: lossHistory,
-        borderColor: "#dda15e",
-        backgroundColor: "rgba(221, 161, 94, 0.15)",
+        borderColor: "#D79A55",
+        backgroundColor: "rgba(215, 154, 85, 0.15)",
         borderWidth: 3,
-        pointBackgroundColor: "#fefae0",
-        pointBorderColor: "#382219",
+        pointBackgroundColor: "#F0D6A2",
+        pointBorderColor: "#6C4A33",
         pointRadius: lossHistory.length > 30 ? 2 : 4,
         tension: 0.1,
         fill: true,
@@ -59,10 +59,10 @@ export const LossChart: React.FC<LossChartProps> = ({ lossHistory }) => {
         display: false,
       },
       tooltip: {
-        backgroundColor: "#281b12",
-        titleColor: "#dda15e",
-        bodyColor: "#fefae0",
-        borderColor: "#382219",
+        backgroundColor: "#211813",
+        titleColor: "#D79A55",
+        bodyColor: "#F0D6A2",
+        borderColor: "#6C4A33",
         borderWidth: 2,
         titleFont: { family: "monospace", size: 14 },
         bodyFont: { family: "monospace", size: 14 },
@@ -71,20 +71,20 @@ export const LossChart: React.FC<LossChartProps> = ({ lossHistory }) => {
     scales: {
       x: {
         grid: {
-          color: "#2c1e15",
+          color: "#6C4A33",
         },
         ticks: {
-          color: "#a3b18a",
+          color: "#B89C76",
           font: { family: "monospace", size: 12 },
           maxTicksLimit: 10,
         },
       },
       y: {
         grid: {
-          color: "#2c1e15",
+          color: "#6C4A33",
         },
         ticks: {
-          color: "#dda15e",
+          color: "#D79A55",
           font: { family: "monospace", size: 12 },
         },
         beginAtZero: true,
@@ -93,12 +93,12 @@ export const LossChart: React.FC<LossChartProps> = ({ lossHistory }) => {
   };
 
   return (
-    <div className="bg-[#1e140e] border-2 border-[#382219] p-3 shadow-[3px_3px_0px_0px_#0f0a07] h-48 w-full">
+    <div className="bg-[#16110D] border-2 border-[#6C4A33] p-3 shadow-[3px_3px_0px_#000000] h-48 w-full rounded-none">
       <div className="flex justify-between items-center mb-1">
-        <span className="font-pixel text-[10px] uppercase text-[#a3b18a] font-bold">
+        <span className="font-pixel text-[10px] uppercase text-[#B89C76] font-bold">
           Loss Curve (f(x, y) vs Step)
         </span>
-        <span className="text-xs text-[#dda15e] font-mono">
+        <span className="text-xs text-[#D79A55] font-mono">
           Latest Loss: {lossHistory.length > 0 ? lossHistory[lossHistory.length - 1].toFixed(4) : "0.0000"}
         </span>
       </div>
