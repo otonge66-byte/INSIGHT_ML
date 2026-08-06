@@ -69,6 +69,7 @@ export function buildModel(
 /**
  * Run one training epoch on all provided labeled points.
  * Returns the scalar loss value for this step.
+ * Uses a training lock flag on the model object to prevent overlapping model.fit() calls.
  */
 export async function trainStep(
   tf: TFType,
@@ -76,34 +77,51 @@ export async function trainStep(
   points: NNDataPoint[]
 ): Promise<number> {
   if (points.length === 0) return 0;
+  
+  // Guard against concurrent model.fit() invocations
+  if ((model as any)._isFitting) {
+    return 0;
+  }
 
-  const xs = tf.tensor2d(
-    points.map((p) => [p.x, p.y]),
-    [points.length, 2]
-  );
-  const ys = tf.tensor2d(
-    points.map((p) => [p.label]),
-    [points.length, 1]
-  );
+  (model as any)._isFitting = true;
 
-  const history = await model.fit(xs, ys, {
-    epochs: 1,
-    batchSize: Math.min(points.length, 32),
-    shuffle: true,
-    verbose: 0,
-  });
+  let xs: TF.Tensor2D | null = null;
+  let ys: TF.Tensor2D | null = null;
 
-  xs.dispose();
-  ys.dispose();
+  try {
+    xs = tf.tensor2d(
+      points.map((p) => [p.x, p.y]),
+      [points.length, 2]
+    );
+    ys = tf.tensor2d(
+      points.map((p) => [p.label]),
+      [points.length, 1]
+    );
 
-  const loss = history.history.loss[0] as number;
-  return Number(isFinite(loss) ? loss.toFixed(4) : 9999);
+    const history = await model.fit(xs, ys, {
+      epochs: 1,
+      batchSize: Math.min(points.length, 32),
+      shuffle: true,
+      verbose: 0,
+    });
+
+    const loss = history.history.loss[0] as number;
+    return Number(isFinite(loss) ? loss.toFixed(4) : 9999);
+  } catch (err) {
+    console.warn("NeuralNet trainStep warning:", err);
+    return 0;
+  } finally {
+    if (xs) xs.dispose();
+    if (ys) ys.dispose();
+    (model as any)._isFitting = false;
+  }
 }
 
 /**
  * Sample the model on a regular grid of (x, y) values in [-1, 1].
  * Returns a flat Float32Array of length gridRes*gridRes where each value is
  * the sigmoid output (0–1), row-major (y outer, x inner... adjusted for canvas).
+ * Safely disposes all temporary tensors.
  */
 export async function getPredictionGrid(
   tf: TFType,
@@ -111,21 +129,26 @@ export async function getPredictionGrid(
   gridRes: number = 50
 ): Promise<Float32Array> {
   const coords: number[][] = [];
-  // Iterate x (cols) outer, y (rows) inner — canvas-friendly row-major
   for (let j = 0; j < gridRes; j++) {
     for (let i = 0; i < gridRes; i++) {
       const x = (i / (gridRes - 1)) * 2 - 1;
-      const y = 1 - (j / (gridRes - 1)) * 2; // flip y: top=+1
+      const y = 1 - (j / (gridRes - 1)) * 2;
       coords.push([x, y]);
     }
   }
 
-  const inputTensor = tf.tensor2d(coords, [gridRes * gridRes, 2]);
-  const predictions = model.predict(inputTensor) as TF.Tensor;
-  const data = await predictions.data() as Float32Array;
-  inputTensor.dispose();
-  predictions.dispose();
-  return data;
+  let inputTensor: TF.Tensor2D | null = null;
+  let predictions: TF.Tensor | null = null;
+
+  try {
+    inputTensor = tf.tensor2d(coords, [gridRes * gridRes, 2]);
+    predictions = model.predict(inputTensor) as TF.Tensor;
+    const data = await predictions.data();
+    return data as Float32Array;
+  } finally {
+    if (inputTensor) inputTensor.dispose();
+    if (predictions) predictions.dispose();
+  }
 }
 
 /**
@@ -137,17 +160,16 @@ export function getLayerWeights(model: TFModel): LayerWeightInfo[] {
 
   for (const layer of model.layers) {
     const layerWeights = layer.getWeights();
-    if (layerWeights.length < 2) continue; // Skip layers without weights
+    if (layerWeights.length < 2) continue;
 
-    const kernelTensor = layerWeights[0]; // shape [inputSize, outputSize]
-    const biasTensor = layerWeights[1];   // shape [outputSize]
+    const kernelTensor = layerWeights[0];
+    const biasTensor = layerWeights[1];
 
     const kernelData = kernelTensor.dataSync() as Float32Array;
     const biasData = biasTensor.dataSync() as Float32Array;
 
     const [inputSize, outputSize] = kernelTensor.shape as [number, number];
 
-    // Convert flat kernel to 2D array [inputSize][outputSize]
     const weights: number[][] = [];
     for (let i = 0; i < inputSize; i++) {
       weights.push([]);

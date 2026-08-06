@@ -5,6 +5,7 @@ import React, {
   useEffect,
   useRef,
   useCallback,
+  useMemo,
 } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -29,7 +30,6 @@ const GRID_RES = 40;
 const DEFAULT_ARCH: NetworkArchitecture = { hiddenSize: 4, numHiddenLayers: 1 };
 
 const PRESET_POINTS: NNDataPoint[] = [
-  // XOR-like pattern — not linearly separable, so it shows off hidden layers
   { id: "p1", x: -0.6, y: -0.6, label: 1 },
   { id: "p2", x: -0.5, y: -0.7, label: 1 },
   { id: "p3", x:  0.6, y:  0.6, label: 1 },
@@ -107,10 +107,20 @@ export default function NeuralNetPlayground() {
   const [learningRate, setLearningRate] = useState(0.1);
   const [architecture, setArchitecture] = useState<NetworkArchitecture>(DEFAULT_ARCH);
   const [isTraining, setIsTraining] = useState(false);
+  const [isStepRunning, setIsStepRunning] = useState(false);
   const [predGrid, setPredGrid] = useState<Float32Array | null>(null);
   const [layerWeights, setLayerWeights] = useState<LayerWeightInfo[]>([]);
   const [tfReady, setTfReady] = useState(false);
   const [statusMsg, setStatusMsg] = useState("Loading TF.js...");
+
+  // ── Training Controller & Promise Locks ──
+  const isTrainingLockRef = useRef(false);
+  const pointsRef = useRef(points);
+  const pointsCountRef = useRef(points.length);
+  const learningRateRef = useRef(learningRate);
+
+  useEffect(() => { pointsRef.current = points; pointsCountRef.current = points.length; }, [points]);
+  useEffect(() => { learningRateRef.current = learningRate; }, [learningRate]);
 
   // Overfitting Demo state
   const [ovNodes, setOvNodes] = useState(4);
@@ -120,17 +130,20 @@ export default function NeuralNetPlayground() {
   const [ovLossHistory, setOvLossHistory] = useState<number[]>([]);
   const ovModelRef = useRef<TFModel | null>(null);
   const ovIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const ovLockRef = useRef(false);
 
   const tfRef = useRef<TFType | null>(null);
   const modelRef = useRef<TFModel | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  const isTrainingRef = useRef(false);
 
   const story = useStoryMode();
+  const storyRef = useRef(story);
+  useEffect(() => { storyRef.current = story; }, [story]);
+
+  // Challenge Mode Controller
   const challenge = useChallengeMode(neuralNetChallenge);
 
-  useEffect(() => { isTrainingRef.current = isTraining; }, [isTraining]);
-
+  // Initialize TensorFlow.js
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -147,89 +160,134 @@ export default function NeuralNetPlayground() {
     return () => { cancelled = true; };
   }, []);
 
+  // Safe Model Allocation & Disposal
   const buildNewModel = useCallback(() => {
     const tf = tfRef.current;
     if (!tf) return;
+
+    // Stop auto-training and release locks
+    setIsTraining(false);
+    setIsStepRunning(false);
+    isTrainingLockRef.current = false;
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+
     if (modelRef.current) {
       modelRef.current.dispose();
       modelRef.current = null;
     }
+
     const { buildModel } = require("@/lib/ml/neural-net");
-    const m = buildModel(tf, architecture, learningRate);
+    const m = buildModel(tf, architecture, learningRateRef.current);
     modelRef.current = m;
     setLayerWeights([]);
     setPredGrid(null);
     setLossHistory([]);
     setStepCount(0);
-    setIsTraining(false);
-  }, [architecture, learningRate]);
+  }, [architecture]);
 
   useEffect(() => {
     if (tfReady) buildNewModel();
   }, [tfReady, buildNewModel]);
 
+  // ── Manual Mode: Exactly ONE Optimization Step ──
   const doTrainStep = useCallback(async () => {
     const tf = tfRef.current;
     const model = modelRef.current;
-    if (!tf || !model || points.length === 0) return;
+    if (!tf || !model || pointsCountRef.current === 0) return;
 
-    const { trainStep, getPredictionGrid, getLayerWeights } = await import("@/lib/ml/neural-net");
+    // Promise lock: Never allow overlapping fit() calls
+    if (isTrainingLockRef.current || (model as any)._isFitting) {
+      return;
+    }
 
-    const loss = await trainStep(tf, model, points);
-    const grid = await getPredictionGrid(tf, model, GRID_RES);
-    const weights = getLayerWeights(model);
+    isTrainingLockRef.current = true;
+    setIsStepRunning(true);
 
-    setLossHistory((prev) => [...prev, loss]);
-    setPredGrid(grid);
-    setLayerWeights(weights);
-    setStepCount((s) => s + 1);
-    setStatusMsg(`Step ${stepCount + 1} — Loss: ${loss.toFixed(4)}`);
-    story.registerAction("nn-train");
-  }, [points, stepCount, story]);
+    try {
+      console.log("Training Step", { currentStep: stepCount });
+      const { trainStep, getPredictionGrid, getLayerWeights } = await import("@/lib/ml/neural-net");
 
+      const loss = await trainStep(tf, model, pointsRef.current);
+      const grid = await getPredictionGrid(tf, model, GRID_RES);
+      const weights = getLayerWeights(model);
+
+      setLossHistory((prev) => [...prev, loss]);
+      setPredGrid(grid);
+      setLayerWeights(weights);
+      setStepCount((s) => {
+        const nextStep = s + 1;
+        setStatusMsg(`Step ${nextStep} — Loss: ${loss.toFixed(4)}`);
+        return nextStep;
+      });
+
+      storyRef.current.registerAction("nn-train");
+    } catch (err) {
+      console.warn("doTrainStep warning:", err);
+    } finally {
+      isTrainingLockRef.current = false;
+      setIsStepRunning(false);
+    }
+  }, [stepCount]);
+
+  // Continuous Auto Mode loop (when isTraining === true)
   useEffect(() => {
     if (isTraining) {
       intervalRef.current = setInterval(() => {
         doTrainStep();
       }, 250);
-    } else {
-      if (intervalRef.current) clearInterval(intervalRef.current);
+    } else if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
     }
-    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
   }, [isTraining, doTrainStep]);
 
-  const handleAddPoint = (p: NNDataPoint) => setPoints((prev) => [...prev, p]);
+  const handleAddPoint = useCallback((p: NNDataPoint) => {
+    setPoints((prev) => [...prev, p]);
+  }, []);
 
-  const handleClear = () => {
+  const handleClear = useCallback(() => {
     setIsTraining(false);
+    setIsStepRunning(false);
     setPoints([]);
     setLossHistory([]);
     setPredGrid(null);
     setStepCount(0);
     setStatusMsg("Canvas cleared.");
     buildNewModel();
-  };
+  }, [buildNewModel]);
 
-  const handleLoadPreset = () => {
+  const handleLoadPreset = useCallback(() => {
     setIsTraining(false);
+    setIsStepRunning(false);
     setPoints(PRESET_POINTS);
     setLossHistory([]);
     setPredGrid(null);
     setStepCount(0);
     setStatusMsg("XOR preset loaded. Click Train to start.");
     buildNewModel();
-    story.registerAction("nn-load-preset");
-  };
+    storyRef.current.registerAction("nn-load-preset");
+  }, [buildNewModel]);
 
-  const handleArchChange = (newArch: Partial<NetworkArchitecture>) => {
+  // Sliders update UI config ONLY
+  const handleArchChange = useCallback((newArch: Partial<NetworkArchitecture>) => {
     setIsTraining(false);
+    setIsStepRunning(false);
     setArchitecture((prev) => {
       const next = { ...prev, ...newArch };
       setTimeout(() => {
         if (!tfRef.current) return;
         if (modelRef.current) modelRef.current.dispose();
         const { buildModel } = require("@/lib/ml/neural-net");
-        modelRef.current = buildModel(tfRef.current, next, learningRate);
+        modelRef.current = buildModel(tfRef.current, next, learningRateRef.current);
         setLayerWeights([]);
         setPredGrid(null);
         setLossHistory([]);
@@ -237,28 +295,32 @@ export default function NeuralNetPlayground() {
       }, 0);
       return next;
     });
-  };
+  }, []);
 
-  const handleLRChange = (lr: number) => {
+  const handleLRChange = useCallback((lr: number) => {
     setLearningRate(lr);
     const tf = tfRef.current;
     const model = modelRef.current;
     if (!tf || !model) return;
-    model.compile({
-      optimizer: tf.train.adam(lr),
-      loss: "binaryCrossentropy",
-    });
-  };
+    try {
+      model.compile({
+        optimizer: tf.train.adam(lr),
+        loss: "binaryCrossentropy",
+      });
+    } catch (e) {}
+  }, []);
 
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
-      modelRef.current?.dispose();
+      if (modelRef.current) modelRef.current.dispose();
       if (ovIntervalRef.current) clearInterval(ovIntervalRef.current);
-      ovModelRef.current?.dispose();
+      if (ovModelRef.current) ovModelRef.current.dispose();
     };
   }, []);
 
+  // Overfitting Demo Model
   const buildOvModel = useCallback((nodes: number) => {
     const tf = tfRef.current;
     if (!tf) return;
@@ -274,49 +336,64 @@ export default function NeuralNetPlayground() {
   const doOvTrainStep = useCallback(async () => {
     const tf = tfRef.current;
     const model = ovModelRef.current;
-    if (!tf || !model) return;
-    const { trainStep, getPredictionGrid } = await import("@/lib/ml/neural-net");
-    const loss = await trainStep(tf, model, OVERFIT_TRAIN);
-    const grid = await getPredictionGrid(tf, model, GRID_RES);
-    setOvPredGrid(grid);
-    setOvLossHistory((prev) => [...prev, loss]);
-    setOvStepCount((s) => s + 1);
+    if (!tf || !model || ovLockRef.current || (model as any)._isFitting) return;
+
+    ovLockRef.current = true;
+    try {
+      const { trainStep, getPredictionGrid } = await import("@/lib/ml/neural-net");
+      const loss = await trainStep(tf, model, OVERFIT_TRAIN);
+      const grid = await getPredictionGrid(tf, model, GRID_RES);
+      setOvPredGrid(grid);
+      setOvLossHistory((prev) => [...prev, loss]);
+      setOvStepCount((s) => s + 1);
+    } catch (e) {
+      console.warn("doOvTrainStep error:", e);
+    } finally {
+      ovLockRef.current = false;
+    }
   }, []);
 
   useEffect(() => {
     if (ovIsTraining) {
       ovIntervalRef.current = setInterval(() => { doOvTrainStep(); }, 150);
-    } else {
-      if (ovIntervalRef.current) clearInterval(ovIntervalRef.current);
+    } else if (ovIntervalRef.current) {
+      clearInterval(ovIntervalRef.current);
+      ovIntervalRef.current = null;
     }
-    return () => { if (ovIntervalRef.current) clearInterval(ovIntervalRef.current); };
+    return () => {
+      if (ovIntervalRef.current) {
+        clearInterval(ovIntervalRef.current);
+        ovIntervalRef.current = null;
+      }
+    };
   }, [ovIsTraining, doOvTrainStep]);
 
-  const handleOvNodeChange = (n: number) => {
+  const handleOvNodeChange = useCallback((n: number) => {
     setOvIsTraining(false);
     setOvNodes(n);
     setTimeout(() => buildOvModel(n), 50);
-  };
+  }, [buildOvModel]);
 
-  const enterOverfittingMode = () => {
+  const enterOverfittingMode = useCallback(() => {
     setAppMode("overfitting");
     setTimeout(() => buildOvModel(ovNodes), 100);
-  };
+  }, [buildOvModel, ovNodes]);
 
-  const enterStoryMode = () => {
+  const enterStoryMode = useCallback(() => {
     setAppMode("story");
     story.start(neuralNetWalkthrough);
-  };
+  }, [story]);
 
-  const enterSandboxMode = () => {
+  const enterSandboxMode = useCallback(() => {
     setAppMode("sandbox");
     story.skip();
-  };
+  }, [story]);
 
-  const enterChallengeMode = () => {
+  const enterChallengeMode = useCallback(() => {
     setAppMode("challenge");
     challenge.reset();
     setIsTraining(false);
+    setIsStepRunning(false);
     setPoints(PRESET_POINTS);
     setArchitecture({ hiddenSize: 2, numHiddenLayers: 1 });
     setLossHistory([]);
@@ -330,7 +407,7 @@ export default function NeuralNetPlayground() {
       modelRef.current = buildModel(tfRef.current, { hiddenSize: 2, numHiddenLayers: 1 }, 0.1);
       setLayerWeights([]);
     }, 0);
-  };
+  }, [challenge]);
 
   useEffect(() => {
     if (appMode === "story" && !story.state.isActive) {
@@ -338,23 +415,44 @@ export default function NeuralNetPlayground() {
     }
   }, [appMode, story.state.isActive]);
 
-  const nnAccuracy = computeNNAccuracy(points, predGrid, GRID_RES);
+  // ── Accuracy Computation & Challenge Observer ──
+  const nnAccuracy = useMemo(() => {
+    return computeNNAccuracy(points, predGrid, GRID_RES);
+  }, [points, predGrid]);
 
+  const currentLoss = lossHistory.length > 0 ? lossHistory[lossHistory.length - 1] : null;
+
+  // Automatically stop training loop when challenge is won
+  useEffect(() => {
+    if (appMode === "challenge" && (challenge.isWon || challenge.showModal)) {
+      console.log("🏆 [Challenge Goal Achieved!] Stopping auto-training loop.");
+      setIsTraining(false);
+      setIsStepRunning(false);
+      isTrainingLockRef.current = false;
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    }
+  }, [appMode, challenge.isWon, challenge.showModal]);
+
+  // Challenge Observer: Updates challenge engine whenever metrics change
   useEffect(() => {
     if (appMode === "challenge") {
       challenge.update({
         stepCount,
-        nnLoss: lossHistory.length > 0 ? lossHistory[lossHistory.length - 1] : null,
+        nnLoss: currentLoss,
         nnAccuracy,
         hiddenSize: architecture.hiddenSize,
         numHiddenLayers: architecture.numHiddenLayers,
       });
     }
-  }, [appMode, stepCount, nnAccuracy, challenge, lossHistory, architecture]);
+  }, [appMode, stepCount, currentLoss, nnAccuracy, architecture.hiddenSize, architecture.numHiddenLayers, challenge]);
 
-  const handleChallengeRetry = () => {
+  const handleChallengeRetry = useCallback(() => {
     challenge.reset();
     setIsTraining(false);
+    setIsStepRunning(false);
     setPoints(PRESET_POINTS);
     setArchitecture({ hiddenSize: 2, numHiddenLayers: 1 });
     setLossHistory([]);
@@ -365,16 +463,15 @@ export default function NeuralNetPlayground() {
       if (!tfRef.current) return;
       if (modelRef.current) modelRef.current.dispose();
       const { buildModel } = require("@/lib/ml/neural-net");
-      modelRef.current = buildModel(tfRef.current, { hiddenSize: 2, numHiddenLayers: 1 }, learningRate);
+      modelRef.current = buildModel(tfRef.current, { hiddenSize: 2, numHiddenLayers: 1 }, learningRateRef.current);
       setLayerWeights([]);
     }, 0);
-  };
+  }, [challenge]);
 
-  const handleNextChallenge = () => {
-    router.push(neuralNetChallenge.nextChallengeUrl ?? "/playground/perceptron");
-  };
-
-  const currentLoss = lossHistory.length > 0 ? lossHistory[lossHistory.length - 1] : null;
+  const handleNextChallenge = useCallback(() => {
+    const nextUrl = neuralNetChallenge.nextChallengeUrl ?? "/playground/perceptron";
+    router.push(nextUrl);
+  }, [router]);
 
   // ── Mode Selection Screen ─────────────────────────────────────────────────
   if (appMode === "select") {
@@ -661,15 +758,15 @@ export default function NeuralNetPlayground() {
             </RetroPanel>
 
             <div className="grid grid-cols-3 gap-3">
-              <RetroButton variant="primary" onClick={doOvTrainStep} disabled={!tfReady}>
-                Step
+              <RetroButton variant="primary" onClick={doOvTrainStep} disabled={!tfReady || ovIsTraining}>
+                Train Step
               </RetroButton>
               <RetroButton
                 variant={ovIsTraining ? "danger" : "accent"}
                 onClick={() => setOvIsTraining((p) => !p)}
                 disabled={!tfReady}
               >
-                {ovIsTraining ? "Stop" : "Auto"}
+                {ovIsTraining ? "STOP AUTO" : "START AUTO"}
               </RetroButton>
               <RetroButton variant="secondary" onClick={() => { setOvIsTraining(false); setTimeout(() => buildOvModel(ovNodes), 50); }}>
                 Reset
@@ -735,7 +832,7 @@ export default function NeuralNetPlayground() {
           </Link>
           <Link href="/playground/gradient-descent"
             className="px-3 py-1.5 bg-[#22302B] hover:bg-[#2C3C35] text-[#C9D7CF] font-pixel text-[10px] uppercase border border-[#4E665B] rounded-xl transition-colors">
-            02. Gradient
+            02. Gradient Descent
           </Link>
           <Link href="/playground/neural-net"
             className="px-3 py-1.5 bg-[#2C3C35] text-[#6FCF97] font-pixel text-[10px] uppercase border border-[#4E665B] rounded-xl">
@@ -745,6 +842,7 @@ export default function NeuralNetPlayground() {
       </header>
 
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        {/* Left Column: Canvas + Live Math Formula Panel */}
         <div id="story-nn-canvas" className="lg:col-span-7 flex flex-col items-center lg:items-start">
           <NeuralNetCanvas
             points={points}
@@ -755,6 +853,19 @@ export default function NeuralNetPlayground() {
             width={560}
             height={560}
           />
+
+          {/* TASK 1: Retro Forward Pass Math Formula Panel */}
+          <div className="w-[560px] max-w-full mt-4 bg-[#22302B] border border-[#4E665B] rounded-2xl p-4 font-mono text-xs text-[#C9D7CF] shadow-sm">
+            <div className="flex items-center justify-between mb-2 pb-2 border-b border-[#4E665B]/60">
+              <span className="font-pixel text-[9px] uppercase text-[#6FCF97] tracking-wider">
+                📐 Feedforward Neural Equation
+              </span>
+              <span className="text-[10px] text-[#8DA397]">y = σ(W₂·σ(W₁·x + b₁) + b₂)</span>
+            </div>
+            <div className="bg-[#182320] border border-[#4E665B] p-3 rounded-xl text-center font-mono text-sm font-bold text-[#EAF4EE]">
+              y = <span className="text-[#E9C46A]">σ</span>( <span className="text-[#6FCF97]">W₂</span> · <span className="text-[#E9C46A]">σ</span>( <span className="text-[#6FCF97]">W₁</span> · x + <span className="text-[#E9C46A]">b₁</span> ) + <span className="text-[#E9C46A]">b₂</span> )
+            </div>
+          </div>
         </div>
 
         <div className="lg:col-span-5 flex flex-col gap-6 w-full">
@@ -830,16 +941,21 @@ export default function NeuralNetPlayground() {
                   displayValue={learningRate.toFixed(2)}
                 />
 
+                {/* Train Controls */}
                 <div className="grid grid-cols-2 gap-3">
-                  <RetroButton variant="primary" onClick={doTrainStep} disabled={!tfReady || points.length === 0}>
+                  <RetroButton
+                    variant="primary"
+                    onClick={doTrainStep}
+                    disabled={!tfReady || points.length === 0 || isTraining || isStepRunning || challenge.isWon}
+                  >
                     Train Step
                   </RetroButton>
                   <RetroButton
                     variant={isTraining ? "danger" : "accent"}
                     onClick={() => setIsTraining((p) => !p)}
-                    disabled={!tfReady || points.length === 0}
+                    disabled={!tfReady || points.length === 0 || challenge.isWon}
                   >
-                    {isTraining ? "Stop Auto" : "Train Auto"}
+                    {isTraining ? "STOP AUTO" : "START AUTO"}
                   </RetroButton>
                 </div>
 

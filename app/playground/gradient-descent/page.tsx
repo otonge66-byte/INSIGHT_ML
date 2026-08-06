@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { GradientDescentCanvas } from "@/components/canvas/GradientDescentCanvas";
@@ -44,8 +44,19 @@ export default function GradientDescentPlayground() {
 
   const autoStepIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Mutable refs to prevent interval tear-downs and render loops
+  const learningRateRef = useRef(learningRate);
+  const presetRef = useRef(preset);
+  const pathRef = useRef(path);
+
+  useEffect(() => { learningRateRef.current = learningRate; }, [learningRate]);
+  useEffect(() => { presetRef.current = preset; }, [preset]);
+  useEffect(() => { pathRef.current = path; }, [path]);
+
   // Story mode controller
   const story = useStoryMode();
+  const storyRef = useRef(story);
+  useEffect(() => { storyRef.current = story; }, [story]);
 
   // Challenge mode controller
   const challenge = useChallengeMode(gradientDescentChallenge);
@@ -55,12 +66,12 @@ export default function GradientDescentPlayground() {
     setPath((prevPath) => {
       if (prevPath.length === 0) return prevPath;
       const currentPos = prevPath[prevPath.length - 1];
-      const stepRes = gradientDescentStep(currentPos, learningRate, preset);
+      const stepRes = gradientDescentStep(currentPos, learningRateRef.current, presetRef.current);
       setLossHistory((prevLosses) => [...prevLosses, stepRes.loss]);
       return [...prevPath, stepRes.nextPos];
     });
-    story.registerAction("gd-step");
-  }, [learningRate, preset, story]);
+    storyRef.current.registerAction("gd-step");
+  }, []);
 
   // Handle continuous auto-stepping loop
   useEffect(() => {
@@ -76,72 +87,90 @@ export default function GradientDescentPlayground() {
     return () => {
       if (autoStepIntervalRef.current) {
         clearInterval(autoStepIntervalRef.current);
+        autoStepIntervalRef.current = null;
       }
     };
   }, [isAutoStepping, handleStep]);
 
+  // Stop auto-stepping automatically when challenge is won
+  useEffect(() => {
+    if (appMode === "challenge" && (challenge.isWon || challenge.showModal)) {
+      console.log("🏆 [Gradient Descent Challenge Solved!] Stopping auto-stepping.");
+      setIsAutoStepping(false);
+      if (autoStepIntervalRef.current) {
+        clearInterval(autoStepIntervalRef.current);
+        autoStepIntervalRef.current = null;
+      }
+    }
+  }, [appMode, challenge.isWon, challenge.showModal]);
+
   // Reset trajectory path
-  const handleResetPath = () => {
+  const handleResetPath = useCallback(() => {
     setIsAutoStepping(false);
     setPath([startPoint]);
     setLossHistory([computeLoss(startPoint.x, startPoint.y, preset)]);
-  };
+  }, [startPoint, preset]);
 
   // Change Starting Point via Canvas click or Randomizer
-  const handleSetStartPoint = (newStart: Point2D) => {
+  const handleSetStartPoint = useCallback((newStart: Point2D) => {
     setIsAutoStepping(false);
     setStartPoint(newStart);
     setPath([newStart]);
-    setLossHistory([computeLoss(newStart.x, newStart.y, preset)]);
-  };
+    setLossHistory([computeLoss(newStart.x, newStart.y, presetRef.current)]);
+  }, []);
 
   // Randomize Start Point
-  const handleRandomizeStart = () => {
+  const handleRandomizeStart = useCallback(() => {
     const rx = Number(((Math.random() - 0.5) * 8).toFixed(2));
     const ry = Number(((Math.random() - 0.5) * 8).toFixed(2));
     handleSetStartPoint({ x: rx, y: ry });
-  };
+  }, [handleSetStartPoint]);
 
   // Change Preset Surface
-  const handlePresetChange = (newPreset: LossPreset) => {
+  const handlePresetChange = useCallback((newPreset: LossPreset) => {
     setIsAutoStepping(false);
     setPreset(newPreset);
     setLearningRate(PRESETS[newPreset].defaultLr);
     setPath([startPoint]);
     setLossHistory([computeLoss(startPoint.x, startPoint.y, newPreset)]);
-  };
+  }, [startPoint]);
 
   // Derived status values
   const currentPos = path[path.length - 1] || startPoint;
-  const currentLoss = computeLoss(currentPos.x, currentPos.y, preset);
-  const currentGrad = computeGradient(currentPos.x, currentPos.y, preset);
-  const gradNorm = Math.sqrt(currentGrad.gx * currentGrad.gx + currentGrad.gy * currentGrad.gy);
+  const currentLoss = useMemo(() => computeLoss(currentPos.x, currentPos.y, preset), [currentPos, preset]);
+  const currentGrad = useMemo(() => computeGradient(currentPos.x, currentPos.y, preset), [currentPos, preset]);
+  const gradNorm = useMemo(() => Math.sqrt(currentGrad.gx * currentGrad.gx + currentGrad.gy * currentGrad.gy), [currentGrad]);
   const stepCount = path.length - 1;
 
   // Detect status: Converged / Minimizing / Diverging
-  const isDiverging =
-    stepCount > 0 &&
-    (currentLoss > lossHistory[0] * 1.1 ||
-      currentLoss >= 45 ||
-      !isFinite(currentLoss) ||
-      Math.abs(currentPos.x) >= 4.8 ||
-      Math.abs(currentPos.y) >= 4.8 ||
-      (lossHistory.length >= 2 && lossHistory[lossHistory.length - 1] > lossHistory[lossHistory.length - 2]));
+  const isDiverging = useMemo(() => {
+    return (
+      stepCount > 0 &&
+      (currentLoss > lossHistory[0] * 1.1 ||
+        currentLoss >= 45 ||
+        !isFinite(currentLoss) ||
+        Math.abs(currentPos.x) >= 4.8 ||
+        Math.abs(currentPos.y) >= 4.8 ||
+        (lossHistory.length >= 2 && lossHistory[lossHistory.length - 1] > lossHistory[lossHistory.length - 2]))
+    );
+  }, [stepCount, currentLoss, lossHistory, currentPos]);
 
-  const isConverged = !isDiverging && (gradNorm < 0.02 || (stepCount > 0 && Math.abs(currentLoss) < 0.001));
+  const isConverged = useMemo(() => {
+    return !isDiverging && (gradNorm < 0.02 || (stepCount > 0 && Math.abs(currentLoss) < 0.001));
+  }, [isDiverging, gradNorm, stepCount, currentLoss]);
 
   // ── Mode selection handlers ───────────────────────────────────────────────
-  const enterStoryMode = () => {
+  const enterStoryMode = useCallback(() => {
     setAppMode("story");
     story.start(gradientDescentWalkthrough);
-  };
+  }, [story]);
 
-  const enterSandboxMode = () => {
+  const enterSandboxMode = useCallback(() => {
     setAppMode("sandbox");
     story.skip();
-  };
+  }, [story]);
 
-  const enterChallengeMode = () => {
+  const enterChallengeMode = useCallback(() => {
     setAppMode("challenge");
     challenge.reset();
     setIsAutoStepping(false);
@@ -149,9 +178,9 @@ export default function GradientDescentPlayground() {
     setLearningRate(PRESETS["bowl"].defaultLr);
     setPath([DEFAULT_START]);
     setLossHistory([computeLoss(DEFAULT_START.x, DEFAULT_START.y, "bowl")]);
-  };
+  }, [challenge]);
 
-  // When story finishes (isActive becomes false after last step) go to sandbox
+  // When story finishes go to sandbox
   useEffect(() => {
     if (appMode === "story" && !story.state.isActive) {
       setAppMode("sandbox");
@@ -163,32 +192,29 @@ export default function GradientDescentPlayground() {
     if (appMode === "challenge") {
       challenge.update({ stepCount, currentLoss, lossHistory });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [appMode, stepCount, currentLoss, lossHistory]);
+  }, [appMode, stepCount, currentLoss, lossHistory, challenge]);
 
-  const handleChallengeRetry = () => {
+  const handleChallengeRetry = useCallback(() => {
     challenge.reset();
     setIsAutoStepping(false);
     setPreset("bowl");
     setLearningRate(PRESETS["bowl"].defaultLr);
     setPath([DEFAULT_START]);
     setLossHistory([computeLoss(DEFAULT_START.x, DEFAULT_START.y, "bowl")]);
-  };
+  }, [challenge]);
 
-  const handleNextChallenge = () => {
+  const handleNextChallenge = useCallback(() => {
     router.push(gradientDescentChallenge.nextChallengeUrl ?? "/playground/neural-net");
-  };
+  }, [router]);
 
   // ── Mode Selection Screen ─────────────────────────────────────────────────
   if (appMode === "select") {
     return (
       <main className="min-h-screen bg-[#182320] text-[#C9D7CF] flex flex-col items-center justify-center p-6 md:p-8 font-sans relative">
-        {/* Top-Left Back Button */}
         <div className="fixed top-4 left-4 z-30">
           <BackButton href="/" label="Back to Dashboard" />
         </div>
 
-        {/* Module nav right */}
         <nav className="fixed top-4 right-4 flex items-center gap-2 z-10 font-sans">
           <Link href="/playground/perceptron"
             className="px-3 py-1.5 bg-[#22302B] hover:bg-[#2C3C35] text-[#C9D7CF] font-pixel text-[10px] uppercase border border-[#4E665B] rounded-xl transition-colors">
@@ -216,7 +242,6 @@ export default function GradientDescentPlayground() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 w-full">
-            {/* Story Mode card */}
             <button
               onClick={enterStoryMode}
               className="group bg-[#2C3C35] hover:bg-[#33463E] border border-[#4E665B] rounded-2xl p-6 text-left flex flex-col gap-3 shadow-sm hover:-translate-y-0.5 hover:scale-[1.01] transition-all duration-200"
@@ -233,7 +258,6 @@ export default function GradientDescentPlayground() {
               </span>
             </button>
 
-            {/* Challenge Mode card */}
             <button
               onClick={enterChallengeMode}
               className="group bg-[#2C3C35] hover:bg-[#33463E] border border-[#4E665B] rounded-2xl p-6 text-left flex flex-col gap-3 shadow-sm hover:-translate-y-0.5 hover:scale-[1.01] transition-all duration-200"
@@ -250,7 +274,6 @@ export default function GradientDescentPlayground() {
               </span>
             </button>
 
-            {/* Sandbox Mode card */}
             <button
               onClick={enterSandboxMode}
               className="group bg-[#2C3C35] hover:bg-[#33463E] border border-[#4E665B] rounded-2xl p-6 text-left flex flex-col gap-3 shadow-sm hover:-translate-y-0.5 hover:scale-[1.01] transition-all duration-200"
@@ -275,7 +298,6 @@ export default function GradientDescentPlayground() {
   // ── Shared Playground UI ──────────────────────────────────────────────────
   return (
     <main className="min-h-screen bg-[#182320] text-[#C9D7CF] p-4 md:p-8 font-sans selection:bg-[#6FCF97] selection:text-[#182320]">
-      {/* Top Navigation Bar */}
       <header className="max-w-7xl mx-auto mb-6 bg-[#22302B] border border-[#4E665B] p-4 sm:p-5 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <BackButton href="/" label="Back to Dashboard" />
@@ -287,7 +309,6 @@ export default function GradientDescentPlayground() {
               <h1 className="text-lg md:text-xl font-pixel text-[#EAF4EE] tracking-wide uppercase">
                 Gradient Mountain
               </h1>
-              {/* Mode badge */}
               {appMode === "story" ? (
                 <button
                   onClick={() => { story.skip(); setAppMode("select"); }}
@@ -335,7 +356,7 @@ export default function GradientDescentPlayground() {
 
       {/* Main Content Grid */}
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        {/* Left Column: 2D Contour Canvas */}
+        {/* Left Column: 2D Contour Canvas + Live Math Formula Panel */}
         <div id="story-gd-canvas" className="lg:col-span-7 flex flex-col items-center lg:items-start">
           <GradientDescentCanvas
             path={path}
@@ -345,11 +366,25 @@ export default function GradientDescentPlayground() {
             height={600}
             range={5}
           />
+
+          {/* TASK 1: Retro Live Math Formula Panel */}
+          <div className="w-[600px] max-w-full mt-4 bg-[#22302B] border border-[#4E665B] rounded-2xl p-4 font-mono text-xs text-[#C9D7CF] shadow-sm">
+            <div className="flex items-center justify-between mb-2 pb-2 border-b border-[#4E665B]/60">
+              <span className="font-pixel text-[9px] uppercase text-[#6FCF97] tracking-wider">
+                📐 Live Gradient Update Rule
+              </span>
+              <span className="text-[10px] text-[#8DA397]">w⁽ᵗ⁺¹⁾ = w⁽ᵗ⁾ - η · ∇L(w)</span>
+            </div>
+            <div className="bg-[#182320] border border-[#4E665B] p-3 rounded-xl text-center font-mono text-sm font-bold text-[#EAF4EE]">
+              w⁽ᵗ⁺¹⁾ = w⁽ᵗ⁾ - <span className="text-[#E9C46A]">{learningRate.toFixed(3)}</span> · (
+              <span className="text-[#6FCF97]">{currentGrad.gx >= 0 ? `+${currentGrad.gx.toFixed(2)}` : currentGrad.gx.toFixed(2)}</span>,{" "}
+              <span className="text-[#6FCF97]">{currentGrad.gy >= 0 ? `+${currentGrad.gy.toFixed(2)}` : currentGrad.gy.toFixed(2)}</span>)
+            </div>
+          </div>
         </div>
 
         {/* Right Column: Controls, Chart, & Readout */}
         <div className="lg:col-span-5 flex flex-col gap-6 w-full">
-          {/* Challenge Card (only in challenge mode) */}
           {appMode === "challenge" && (
             <ChallengeCard
               challenge={gradientDescentChallenge}
@@ -358,14 +393,12 @@ export default function GradientDescentPlayground() {
             />
           )}
 
-          {/* Controls Panel */}
           <div id="story-gd-controls">
             <RetroPanel title="Optimizer & Surface Setup" borderColor="border-[#4E665B]">
               <div className="flex flex-col gap-4">
-                {/* Preset Selector */}
                 <div>
                   <span className="font-pixel text-[10px] text-[#8DA397] block mb-2 uppercase">
-                    Loss Surface Surface:
+                    Loss Surface:
                   </span>
                   <div className="grid grid-cols-3 gap-2">
                     {(Object.keys(PRESETS) as LossPreset[]).map((key) => (
@@ -384,7 +417,6 @@ export default function GradientDescentPlayground() {
                   </div>
                 </div>
 
-                {/* Learning Rate Slider */}
                 <div id="story-gd-lr-slider">
                   <RetroSlider
                     label="Learning Rate (η)"
@@ -397,10 +429,9 @@ export default function GradientDescentPlayground() {
                   />
                 </div>
 
-                {/* Action Buttons */}
                 <div className="grid grid-cols-2 gap-3">
                   <div id="story-gd-step-btn">
-                    <RetroButton variant="primary" onClick={handleStep} className="w-full">
+                    <RetroButton variant="primary" onClick={handleStep} disabled={challenge.isWon} className="w-full">
                       Step (1x)
                     </RetroButton>
                   </div>
@@ -408,6 +439,7 @@ export default function GradientDescentPlayground() {
                   <RetroButton
                     variant={isAutoStepping ? "danger" : "accent"}
                     onClick={() => setIsAutoStepping((prev) => !prev)}
+                    disabled={challenge.isWon}
                   >
                     {isAutoStepping ? "Stop Auto" : "Run Auto"}
                   </RetroButton>
@@ -425,15 +457,12 @@ export default function GradientDescentPlayground() {
             </RetroPanel>
           </div>
 
-          {/* Loss Curve Chart */}
           <RetroPanel title="Loss Convergence Chart" borderColor="border-[#4E665B]">
             <LossChart lossHistory={lossHistory} />
           </RetroPanel>
 
-          {/* Readout Panel */}
           <RetroPanel title="Optimizer Readout" borderColor="border-[#4E665B]">
             <div className="space-y-3 font-sans">
-              {/* Status Badge */}
               <div className="flex justify-between items-center bg-[#182320] p-3 rounded-xl border border-[#4E665B]">
                 <span className="text-[#8DA397] text-xs">Status:</span>
                 <span
@@ -449,7 +478,6 @@ export default function GradientDescentPlayground() {
                 </span>
               </div>
 
-              {/* Numerical Metrics */}
               <div className="grid grid-cols-3 gap-2 text-center">
                 <div className="bg-[#182320] p-2.5 rounded-xl border border-[#4E665B]">
                   <span className="text-[#8DA397] block font-pixel text-[9px]">POS (x, y)</span>
@@ -471,28 +499,16 @@ export default function GradientDescentPlayground() {
                 </div>
               </div>
 
-              {/* Step info */}
               <div className="bg-[#182320] p-3 rounded-xl border border-[#4E665B] flex justify-between items-center text-xs">
                 <span className="text-[#8DA397]">Total Steps Taken:</span>
                 <span className="text-[#6FCF97] font-mono font-bold">{stepCount}</span>
               </div>
             </div>
           </RetroPanel>
-
-          {/* Theoretical Concept Note */}
-          <div className="bg-[#2C3C35] border border-[#4E665B] p-4 rounded-2xl shadow-sm text-xs text-[#C9D7CF] leading-relaxed font-sans">
-            <p className="text-[#E9C46A] font-pixel text-[9px] uppercase mb-1">
-              💡 Concept Note: 2D Loss Surface Choice
-            </p>
-            <p>
-              We chose a <strong>2D Bowl Loss Surface f(x,y) = x² + y²</strong> because it maps parameter space directly to elevation contours. 
-              Small learning rates (η ≈ 0.10) produce steady downhill convergence, while large learning rates (η ≥ 0.95) overshoot the bowl walls and oscillate/diverge.
-            </p>
-          </div>
         </div>
       </div>
 
-      {/* ── Story Mode Dialogue Overlay ───────────────────────────────────── */}
+      {/* Story Mode Dialogue Overlay */}
       {appMode === "story" && story.currentStep && (
         <NPCDialogueBox
           step={story.currentStep}
@@ -515,7 +531,7 @@ export default function GradientDescentPlayground() {
         />
       )}
 
-      {/* ── Challenge Result Modal ────────────────────────────────────────── */}
+      {/* Challenge Result Modal */}
       {challenge.showModal && (
         <ChallengeResultModal
           challenge={gradientDescentChallenge}

@@ -11,6 +11,7 @@ interface CozyHeaderProps {
   backLabel?: string;
   userName?: string;
   userAvatar?: string;
+  onToggleSidebar?: () => void;
 }
 
 export const CozyHeader: React.FC<CozyHeaderProps> = ({
@@ -21,6 +22,7 @@ export const CozyHeader: React.FC<CozyHeaderProps> = ({
   backLabel = "Back to Dashboard",
   userName = "Explorer",
   userAvatar = "🤠",
+  onToggleSidebar,
 }) => {
   const [timeStr, setTimeStr] = useState<string>("09:45");
   const [dateStr, setDateStr] = useState<string>("05 Aug 2026");
@@ -45,9 +47,21 @@ export const CozyHeader: React.FC<CozyHeaderProps> = ({
   }, []);
 
   return (
-    <header className="w-full bg-[#22302B] border-b border-[#4E665B] px-5 py-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4 relative overflow-hidden">
-      {/* Left Greeting & Optional Top-Left Back Button */}
-      <div className="flex items-center gap-3.5 z-10">
+    <header className="w-full bg-[#22302B] border-b border-[#4E665B] px-4 sm:px-6 py-3.5 flex flex-col md:flex-row md:items-center md:justify-between gap-3.5 relative z-20">
+      {/* Left Header Section: Hamburger + Back Button + Greeting */}
+      <div className="flex items-center gap-3 shrink-0">
+        {/* Hamburger Menu Toggle Button (☰) */}
+        {onToggleSidebar && (
+          <button
+            onClick={onToggleSidebar}
+            className="bg-[#2C3C35] hover:bg-[#33463E] text-[#6FCF97] border border-[#4E665B] rounded-xl px-3 py-1.5 transition-colors duration-200 flex items-center justify-center text-sm font-bold cursor-pointer shrink-0 shadow-xs"
+            aria-label="Toggle Navigation Sidebar"
+            title="Toggle Navigation Menu"
+          >
+            ☰
+          </button>
+        )}
+
         {showBackButton && (
           <div className="shrink-0">
             <BackButton href={backHref} label={backLabel} />
@@ -55,11 +69,9 @@ export const CozyHeader: React.FC<CozyHeaderProps> = ({
         )}
 
         <div>
-          <div className="flex items-center gap-2">
-            <h1 className="font-pixel text-sm sm:text-base font-bold text-[#EAF4EE] tracking-wide">
-              {title}
-            </h1>
-          </div>
+          <h1 className="font-pixel text-sm sm:text-base font-bold text-[#EAF4EE] tracking-wide">
+            {title}
+          </h1>
           {subtitle && (
             <p className="font-sans text-xs text-[#8DA397] mt-0.5">
               {subtitle}
@@ -68,28 +80,28 @@ export const CozyHeader: React.FC<CozyHeaderProps> = ({
         </div>
       </div>
 
-      {/* Right Widget Bar: Date, Season, Time, Avatar */}
-      <div className="flex items-center gap-2.5 font-sans text-xs text-[#C9D7CF] z-10 flex-wrap">
+      {/* Right Widget Bar: Date, Clock, System Status (🟢 ONLINE), Avatar */}
+      <div className="flex items-center gap-2.5 font-sans text-xs text-[#C9D7CF] flex-wrap shrink-0">
         {/* Date */}
-        <div className="flex items-center gap-1.5 bg-[#2C3C35] px-3 py-1.5 rounded-lg border border-[#4E665B]">
+        <div className="flex items-center gap-1.5 bg-[#2C3C35] hover:bg-[#33463E] px-3 py-1.5 rounded-xl border border-[#4E665B] transition-colors duration-200">
           <span>📅</span>
           <span className="font-medium text-[#EAF4EE]">{dateStr}</span>
         </div>
 
-        {/* Season */}
-        <div className="flex items-center gap-1.5 bg-[#2C3C35] px-3 py-1.5 rounded-lg border border-[#4E665B]">
-          <span>🌿</span>
-          <span className="font-medium text-[#EAF4EE]">Summer</span>
-        </div>
-
         {/* Clock */}
-        <div className="flex items-center gap-1.5 bg-[#2C3C35] px-3 py-1.5 rounded-lg border border-[#4E665B]">
+        <div className="flex items-center gap-1.5 bg-[#2C3C35] hover:bg-[#33463E] px-3 py-1.5 rounded-xl border border-[#4E665B] transition-colors duration-200">
           <span>⏰</span>
           <span className="font-medium text-[#EAF4EE]">{timeStr}</span>
         </div>
 
+        {/* System Status: 🟢 ONLINE (replaces Summer) */}
+        <div className="flex items-center gap-1.5 bg-[#2C3C35] hover:bg-[#33463E] px-3 py-1.5 rounded-xl border border-[#4E665B] transition-colors duration-200">
+          <span className="w-2 h-2 rounded-full bg-[#6FCF97] animate-pulse" />
+          <span className="font-mono text-xs font-bold text-[#6FCF97]">ONLINE</span>
+        </div>
+
         {/* Explorer Avatar Badge */}
-        <div className="flex items-center gap-2 bg-[#2C3C35] text-[#EAF4EE] px-3 py-1.5 rounded-lg border border-[#4E665B]">
+        <div className="flex items-center gap-2 bg-[#2C3C35] hover:bg-[#33463E] text-[#EAF4EE] px-3 py-1.5 rounded-xl border border-[#4E665B] transition-colors duration-200">
           <div className="w-5 h-5 rounded-full bg-[#22302B] flex items-center justify-center text-xs border border-[#4E665B]">
             {userAvatar}
           </div>

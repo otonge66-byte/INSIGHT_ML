@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ByteSprite } from "@/components/sprites/ByteSprite";
@@ -23,7 +23,17 @@ const DAILY_TIPS = [
   "XOR needs hidden layers to solve—a single linear boundary cannot separate it!",
 ];
 
-export const CozySidebar: React.FC = () => {
+interface CozySidebarProps {
+  isCollapsed?: boolean;
+  isMobileOpen?: boolean;
+  onCloseMobile?: () => void;
+}
+
+export const CozySidebar: React.FC<CozySidebarProps> = ({
+  isCollapsed = false,
+  isMobileOpen = false,
+  onCloseMobile,
+}) => {
   const pathname = usePathname();
   const [tipIndex, setTipIndex] = useState(0);
 
@@ -31,8 +41,20 @@ export const CozySidebar: React.FC = () => {
     setTipIndex((prev) => (prev + 1) % DAILY_TIPS.length);
   };
 
-  return (
-    <aside className="w-full md:w-64 bg-[#22302B] text-[#C9D7CF] p-4 flex flex-col justify-between shrink-0 border-r border-[#4E665B] md:min-h-screen">
+  // Close mobile drawer on ESC key press
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && isMobileOpen && onCloseMobile) {
+        onCloseMobile();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isMobileOpen, onCloseMobile]);
+
+  // Sidebar navigation content
+  const sidebarContent = (
+    <div className="flex flex-col justify-between h-full min-h-[500px]">
       <div>
         {/* Brand Header */}
         <div className="bg-[#2C3C35] border border-[#4E665B] rounded-xl p-3 text-center mb-6 relative overflow-hidden group">
@@ -57,6 +79,9 @@ export const CozySidebar: React.FC = () => {
               <Link
                 key={item.name}
                 href={item.href}
+                onClick={() => {
+                  if (onCloseMobile) onCloseMobile();
+                }}
                 className={`flex items-center justify-between px-3 py-2.5 rounded-lg transition-colors ${
                   isActive
                     ? "bg-[#2C3C35] text-[#EAF4EE] font-medium border-l-4 border-[#6FCF97]"
@@ -65,12 +90,12 @@ export const CozySidebar: React.FC = () => {
               >
                 <div className="flex items-center gap-2.5">
                   <span className="text-sm">{item.icon}</span>
-                  <span>{item.name}</span>
+                  <span className="whitespace-nowrap">{item.name}</span>
                 </div>
                 {isActive ? (
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#6FCF97]" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#6FCF97] shrink-0" />
                 ) : (
-                  <span className="text-[10px] text-[#8DA397] bg-[#182320] px-1.5 py-0.5 rounded border border-[#4E665B]/40 font-mono">
+                  <span className="text-[10px] text-[#8DA397] bg-[#182320] px-1.5 py-0.5 rounded border border-[#4E665B]/40 font-mono shrink-0">
                     {item.badge}
                   </span>
                 )}
@@ -103,6 +128,49 @@ export const CozySidebar: React.FC = () => {
           </p>
         </div>
       </div>
-    </aside>
+    </div>
+  );
+
+  return (
+    <>
+      {/* ── MOBILE OVERLAY DRAWER ── */}
+      {/* Backdrop */}
+      {isMobileOpen && (
+        <div
+          onClick={onCloseMobile}
+          className="fixed inset-0 bg-[#182320]/80 backdrop-blur-xs z-40 md:hidden transition-opacity duration-300"
+          aria-hidden="true"
+        />
+      )}
+
+      {/* Mobile Drawer */}
+      <aside
+        className={`fixed top-0 left-0 bottom-0 z-50 w-72 max-w-[85vw] bg-[#22302B] border-r border-[#4E665B] p-4 transition-transform duration-300 ease-in-out md:hidden shadow-2xl overflow-y-auto ${
+          isMobileOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        <div className="flex justify-end mb-2">
+          <button
+            onClick={onCloseMobile}
+            className="text-[#8DA397] hover:text-[#EAF4EE] text-sm p-1 rounded-lg border border-[#4E665B]/40"
+            aria-label="Close Mobile Navigation"
+          >
+            ✕
+          </button>
+        </div>
+        {sidebarContent}
+      </aside>
+
+      {/* ── DESKTOP COLLAPSIBLE SIDEBAR ── */}
+      <aside
+        className={`hidden md:flex flex-col shrink-0 bg-[#22302B] text-[#C9D7CF] border-r border-[#4E665B] min-h-screen transition-all duration-300 ease-in-out ${
+          isCollapsed
+            ? "w-0 p-0 opacity-0 overflow-hidden border-r-0 pointer-events-none"
+            : "w-64 p-4 opacity-100"
+        }`}
+      >
+        {sidebarContent}
+      </aside>
+    </>
   );
 };

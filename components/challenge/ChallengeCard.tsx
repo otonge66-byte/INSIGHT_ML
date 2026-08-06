@@ -17,6 +17,10 @@ export const ChallengeCard: React.FC<ChallengeCardProps> = ({
   const percent = challenge.getProgressPercent(metrics);
   const label = challenge.getProgressLabel(metrics);
 
+  const isNNModule = challenge.module === "neural-net";
+  const hasAccuracy = (metrics.nnAccuracy ?? 0) >= 100;
+  const isWrongArch = isNNModule && hasAccuracy && (metrics.hiddenSize !== 2 || metrics.numHiddenLayers !== 1);
+
   return (
     <div className="bg-[#2C3C35] border border-[#4E665B] rounded-2xl p-5 shadow-sm font-sans flex flex-col gap-3">
       {/* Header strip */}
@@ -67,6 +71,16 @@ export const ChallengeCard: React.FC<ChallengeCardProps> = ({
         <p className="text-[#E9C46A] text-xs font-mono">
           {label}
         </p>
+
+        {/* Informative Guidance Banner if 100% accuracy reached with wrong architecture */}
+        {isWrongArch && !isWon && (
+          <div className="bg-[#22302B] border border-[#E9C46A]/80 p-3 rounded-xl text-xs text-[#E9C46A] leading-relaxed">
+            <p className="font-bold mb-0.5">💡 Great Accuracy (100%)!</p>
+            <p className="text-[#C9D7CF]">
+              Now solve it again using <strong>only 2 hidden nodes in 1 layer</strong> to complete this minimal network challenge.
+            </p>
+          </div>
+        )}
 
         {/* Won badge */}
         {isWon && (

@@ -16,6 +16,34 @@ const TERMINAL_MESSAGES = [
 ];
 
 export default function CozyIslandDashboard() {
+  // ── Sidebar Collapsible & Mobile Drawer State ──
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState<boolean>(false);
+
+  // Load sidebar preference from localStorage on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("insightml_sidebar_collapsed");
+      if (saved !== null) {
+        setIsSidebarCollapsed(saved === "true");
+      }
+    } catch (e) {}
+  }, []);
+
+  const handleToggleSidebar = () => {
+    if (typeof window !== "undefined" && window.innerWidth < 768) {
+      setIsMobileSidebarOpen((prev) => !prev);
+    } else {
+      setIsSidebarCollapsed((prev) => {
+        const next = !prev;
+        try {
+          localStorage.setItem("insightml_sidebar_collapsed", String(next));
+        } catch (e) {}
+        return next;
+      });
+    }
+  };
+
   // ── Terminal typewriter state ──
   const [msgIndex, setMsgIndex] = useState(0);
   const [charIndex, setCharIndex] = useState(0);
@@ -97,17 +125,22 @@ export default function CozyIslandDashboard() {
 
   return (
     <div className="min-h-screen bg-[#182320] text-[#C9D7CF] flex flex-col md:flex-row selection:bg-[#6FCF97] selection:text-[#182320] font-sans">
-      {/* Sidebar */}
-      <CozySidebar />
+      {/* Collapsible Sidebar */}
+      <CozySidebar
+        isCollapsed={isSidebarCollapsed}
+        isMobileOpen={isMobileSidebarOpen}
+        onCloseMobile={() => setIsMobileSidebarOpen(false)}
+      />
 
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-col min-w-0">
+      <main className="flex-1 flex flex-col min-w-0 transition-all duration-300">
         {/* Top Header Bar */}
         <CozyHeader
           title="InsightML Control Center"
           subtitle="Interactive Control Center for Machine Learning Visualizations"
           userName="Guest"
           userAvatar="🤖"
+          onToggleSidebar={handleToggleSidebar}
         />
 
         {/* Dashboard Content Container */}

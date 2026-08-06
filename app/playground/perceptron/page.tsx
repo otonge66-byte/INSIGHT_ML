@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PerceptronCanvas } from "@/components/canvas/PerceptronCanvas";
@@ -37,26 +37,36 @@ export default function PerceptronPlayground() {
   const [stepCount, setStepCount] = useState<number>(0);
 
   const trainingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const pointsRef = useRef(points);
+  const learningRateRef = useRef(learningRate);
+  const weightsRef = useRef(weights);
+
+  useEffect(() => { pointsRef.current = points; }, [points]);
+  useEffect(() => { learningRateRef.current = learningRate; }, [learningRate]);
+  useEffect(() => { weightsRef.current = weights; }, [weights]);
 
   // Story mode controller
   const story = useStoryMode();
+  const storyRef = useRef(story);
+  useEffect(() => { storyRef.current = story; }, [story]);
 
   // Challenge mode controller
   const challenge = useChallengeMode(perceptronChallenge);
 
   // ── Point handling ───────────────────────────────────────────────────────
-  const handleAddPoint = (newPoint: DataPoint) => {
+  const handleAddPoint = useCallback((newPoint: DataPoint) => {
     setPoints((prev) => [...prev, newPoint]);
-    story.registerAction("add-point");
-  };
+    storyRef.current.registerAction("add-point");
+  }, []);
 
   // ── Training ─────────────────────────────────────────────────────────────
   const handleTrainStep = useCallback(() => {
-    if (points.length === 0) return;
-    setWeights((prevWeights) => trainEpoch(points, prevWeights, learningRate));
+    if (pointsRef.current.length === 0) return;
+    const nextWeights = trainEpoch(pointsRef.current, weightsRef.current, learningRateRef.current);
+    setWeights(nextWeights);
     setStepCount((prev) => prev + 1);
-    story.registerAction("train-step");
-  }, [points, learningRate, story]);
+    storyRef.current.registerAction("train-step");
+  }, []);
 
   useEffect(() => {
     if (isTraining) {
@@ -68,22 +78,25 @@ export default function PerceptronPlayground() {
       trainingIntervalRef.current = null;
     }
     return () => {
-      if (trainingIntervalRef.current) clearInterval(trainingIntervalRef.current);
+      if (trainingIntervalRef.current) {
+        clearInterval(trainingIntervalRef.current);
+        trainingIntervalRef.current = null;
+      }
     };
   }, [isTraining, handleTrainStep]);
 
-  const handleResetWeights = () => {
+  const handleResetWeights = useCallback(() => {
     setWeights(initRandomWeights());
     setStepCount(0);
-  };
+  }, []);
 
-  const handleClearPoints = () => {
+  const handleClearPoints = useCallback(() => {
     setPoints([]);
     setStepCount(0);
     setIsTraining(false);
-  };
+  }, []);
 
-  const loadPresetSeparable = () => {
+  const loadPresetSeparable = useCallback(() => {
     setIsTraining(false);
     setStepCount(0);
     setPoints([
@@ -96,67 +109,79 @@ export default function PerceptronPlayground() {
       { id: "7", x:  0.3, y: -0.7, label: -1 },
       { id: "8", x:  0.6, y: -0.2, label: -1 },
     ]);
-  };
+  }, []);
 
-  const currentAccuracy = calculateAccuracy(points, weights);
+  // Memoize accuracy calculation
+  const currentAccuracy = useMemo(() => {
+    return calculateAccuracy(points, weights);
+  }, [points, weights]);
 
   // ── Mode selection handlers ───────────────────────────────────────────────
-  const enterStoryMode = () => {
+  const enterStoryMode = useCallback(() => {
     setAppMode("story");
     story.start(perceptronWalkthrough);
-  };
+  }, [story]);
 
-  const enterSandboxMode = () => {
+  const enterSandboxMode = useCallback(() => {
     setAppMode("sandbox");
     story.skip();
-  };
+  }, [story]);
 
-  const enterChallengeMode = () => {
+  const enterChallengeMode = useCallback(() => {
     setAppMode("challenge");
     challenge.reset();
     setPoints([]);
     setWeights(initRandomWeights());
     setStepCount(0);
     setIsTraining(false);
-  };
+  }, [challenge]);
 
-  // When story finishes (isActive becomes false after last step) go to sandbox
+  // When story finishes go to sandbox
   useEffect(() => {
     if (appMode === "story" && !story.state.isActive) {
       setAppMode("sandbox");
     }
   }, [appMode, story.state.isActive]);
 
+  // Stop training automatically when challenge is won
+  useEffect(() => {
+    if (appMode === "challenge" && (challenge.isWon || challenge.showModal)) {
+      console.log("🏆 [Perceptron Challenge Solved!] Stopping auto-training.");
+      setIsTraining(false);
+      if (trainingIntervalRef.current) {
+        clearInterval(trainingIntervalRef.current);
+        trainingIntervalRef.current = null;
+      }
+    }
+  }, [appMode, challenge.isWon, challenge.showModal]);
+
   // ── Challenge progress tracking ───────────────────────────────────────────
   useEffect(() => {
     if (appMode === "challenge") {
       challenge.update({ stepCount, accuracy: currentAccuracy });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [appMode, stepCount, currentAccuracy]);
+  }, [appMode, stepCount, currentAccuracy, challenge]);
 
-  const handleChallengeRetry = () => {
+  const handleChallengeRetry = useCallback(() => {
     challenge.reset();
     setPoints([]);
     setWeights(initRandomWeights());
     setStepCount(0);
     setIsTraining(false);
-  };
+  }, [challenge]);
 
-  const handleNextChallenge = () => {
+  const handleNextChallenge = useCallback(() => {
     router.push(perceptronChallenge.nextChallengeUrl ?? "/playground/gradient-descent");
-  };
+  }, [router]);
 
   // ── Mode Selection Screen ─────────────────────────────────────────────────
   if (appMode === "select") {
     return (
       <main className="min-h-screen bg-[#182320] text-[#C9D7CF] flex flex-col items-center justify-center p-6 md:p-8 font-sans relative">
-        {/* Top-Left Back Button */}
         <div className="fixed top-4 left-4 z-30">
           <BackButton href="/" label="Back to Dashboard" />
         </div>
 
-        {/* Module nav right */}
         <nav className="fixed top-4 right-4 flex items-center gap-2 z-10 font-sans">
           <Link href="/playground/perceptron"
             className="px-3 py-1.5 bg-[#2C3C35] text-[#6FCF97] font-pixel text-[10px] uppercase border border-[#4E665B] rounded-xl">
@@ -173,7 +198,6 @@ export default function PerceptronPlayground() {
         </nav>
 
         <div className="max-w-3xl w-full text-center flex flex-col items-center gap-8">
-          {/* Title */}
           <div>
             <span className="bg-[#2C3C35] text-[#6FCF97] font-pixel text-[10px] uppercase px-3 py-1 border border-[#4E665B] rounded-full inline-block mb-4">
               Module 01
@@ -184,9 +208,7 @@ export default function PerceptronPlayground() {
             <p className="text-[#8DA397] text-sm">Choose your learning mode:</p>
           </div>
 
-          {/* Mode cards */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 w-full">
-            {/* Story Mode card */}
             <button
               onClick={enterStoryMode}
               className="group bg-[#2C3C35] hover:bg-[#33463E] border border-[#4E665B] rounded-2xl p-6 text-left flex flex-col gap-3 shadow-sm hover:-translate-y-0.5 hover:scale-[1.01] transition-all duration-200"
@@ -203,7 +225,6 @@ export default function PerceptronPlayground() {
               </span>
             </button>
 
-            {/* Challenge Mode card */}
             <button
               onClick={enterChallengeMode}
               className="group bg-[#2C3C35] hover:bg-[#33463E] border border-[#4E665B] rounded-2xl p-6 text-left flex flex-col gap-3 shadow-sm hover:-translate-y-0.5 hover:scale-[1.01] transition-all duration-200"
@@ -220,7 +241,6 @@ export default function PerceptronPlayground() {
               </span>
             </button>
 
-            {/* Sandbox Mode card */}
             <button
               onClick={enterSandboxMode}
               className="group bg-[#2C3C35] hover:bg-[#33463E] border border-[#4E665B] rounded-2xl p-6 text-left flex flex-col gap-3 shadow-sm hover:-translate-y-0.5 hover:scale-[1.01] transition-all duration-200"
@@ -242,10 +262,9 @@ export default function PerceptronPlayground() {
     );
   }
 
-  // ── Shared Playground UI (Story + Sandbox + Challenge all render this) ────
+  // ── Shared Playground UI ──────────────────────────────────────────────────
   return (
     <main className="min-h-screen bg-[#182320] text-[#C9D7CF] p-4 md:p-8 font-sans selection:bg-[#6FCF97] selection:text-[#182320]">
-      {/* Top Header Bar */}
       <header className="max-w-7xl mx-auto mb-6 bg-[#22302B] border border-[#4E665B] p-4 sm:p-5 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <BackButton href="/" label="Back to Dashboard" />
@@ -257,7 +276,6 @@ export default function PerceptronPlayground() {
               <h1 className="text-lg md:text-xl font-pixel text-[#EAF4EE] tracking-wide uppercase">
                 Perceptron Meadow
               </h1>
-              {/* Mode badge */}
               {appMode === "story" ? (
                 <button
                   onClick={() => { story.skip(); setAppMode("select"); }}
@@ -282,12 +300,12 @@ export default function PerceptronPlayground() {
               )}
             </div>
             <p className="text-[#8DA397] text-xs mt-1 font-sans">
-              Single-Layer Neural Unit • Linear Binary Classifier • Pure TS Engine
+              Single-layer binary classifier • Linear decision boundary tuning
             </p>
           </div>
         </div>
 
-        <nav className="flex items-center gap-2">
+        <nav className="flex items-center gap-2 font-sans">
           <Link href="/playground/perceptron"
             className="px-3 py-1.5 bg-[#2C3C35] text-[#6FCF97] font-pixel text-[10px] uppercase border border-[#4E665B] rounded-xl">
             01. Perceptron
@@ -303,10 +321,10 @@ export default function PerceptronPlayground() {
         </nav>
       </header>
 
-      {/* Main Grid Layout */}
+      {/* Main Grid */}
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        {/* Left Column: Interactive Canvas */}
-        <div id="story-canvas-area" className="lg:col-span-7 flex flex-col items-center lg:items-start">
+        {/* Left Column: Canvas + Live Math Formula Panel */}
+        <div id="story-perceptron-canvas" className="lg:col-span-7 flex flex-col items-center lg:items-start">
           <PerceptronCanvas
             points={points}
             weights={weights}
@@ -314,11 +332,25 @@ export default function PerceptronPlayground() {
             width={600}
             height={600}
           />
+
+          {/* TASK 1: Retro Live Math Formula Panel */}
+          <div className="w-[600px] max-w-full mt-4 bg-[#22302B] border border-[#4E665B] rounded-2xl p-4 font-mono text-xs text-[#C9D7CF] shadow-sm">
+            <div className="flex items-center justify-between mb-2 pb-2 border-b border-[#4E665B]/60">
+              <span className="font-pixel text-[9px] uppercase text-[#6FCF97] tracking-wider">
+                📐 Live Decision Boundary Equation
+              </span>
+              <span className="text-[10px] text-[#8DA397]">w₁·x₁ + w₂·x₂ + b = 0</span>
+            </div>
+            <div className="bg-[#182320] border border-[#4E665B] p-3 rounded-xl text-center font-mono text-sm font-bold text-[#EAF4EE]">
+              <span className="text-[#6FCF97]">{weights.w1 >= 0 ? `+${weights.w1.toFixed(2)}` : weights.w1.toFixed(2)}</span> · x₁ +{" "}
+              <span className="text-[#6FCF97]">{weights.w2 >= 0 ? `+${weights.w2.toFixed(2)}` : weights.w2.toFixed(2)}</span> · x₂ +{" "}
+              <span className="text-[#E9C46A]">{weights.bias >= 0 ? `+${weights.bias.toFixed(2)}` : weights.bias.toFixed(2)}</span> = 0
+            </div>
+          </div>
         </div>
 
-        {/* Right Column: Controls & Live Readout */}
-        <div className="lg:col-span-5 flex flex-col gap-6 w-full">
-          {/* Challenge Card (only in challenge mode) */}
+        {/* Right Column: Controls, Readout & Challenge Card */}
+        <div className="lg:col-span-5 flex flex-col gap-6 w-full font-sans">
           {appMode === "challenge" && (
             <ChallengeCard
               challenge={perceptronChallenge}
@@ -327,136 +359,105 @@ export default function PerceptronPlayground() {
             />
           )}
 
-          {/* Controls Panel */}
-          <RetroPanel title="Hyperparameters & Training" borderColor="border-[#4E665B]">
-            <div className="flex flex-col gap-4">
-              {/* Learning Rate Slider */}
-              <div id="story-lr-slider">
-                <RetroSlider
-                  label="Learning Rate (η)"
-                  min={0.01}
-                  max={1.0}
-                  step={0.01}
-                  value={learningRate}
-                  onChange={setLearningRate}
-                  displayValue={learningRate.toFixed(2)}
-                />
-              </div>
+          <div id="story-perceptron-controls">
+            <RetroPanel title="Perceptron Controls" borderColor="border-[#4E665B]">
+              <div className="flex flex-col gap-4">
+                <div id="story-perceptron-lr-slider">
+                  <RetroSlider
+                    label="Learning Rate (η)"
+                    min={0.01}
+                    max={1.0}
+                    step={0.01}
+                    value={learningRate}
+                    onChange={setLearningRate}
+                    displayValue={learningRate.toFixed(2)}
+                  />
+                </div>
 
-              {/* Action Buttons */}
-              <div className="grid grid-cols-2 gap-3">
-                <div id="story-train-step-btn">
+                <div className="grid grid-cols-2 gap-3">
+                  <div id="story-perceptron-train-btn">
+                    <RetroButton
+                      variant="primary"
+                      onClick={handleTrainStep}
+                      disabled={points.length === 0 || challenge.isWon}
+                      className="w-full"
+                    >
+                      Step Epoch (1x)
+                    </RetroButton>
+                  </div>
+
                   <RetroButton
-                    variant="primary"
-                    onClick={handleTrainStep}
-                    disabled={points.length === 0}
-                    className="w-full"
+                    variant={isTraining ? "danger" : "accent"}
+                    onClick={() => setIsTraining((prev) => !prev)}
+                    disabled={points.length === 0 || challenge.isWon}
                   >
-                    Train Step
+                    {isTraining ? "Stop Auto" : "Run Auto"}
                   </RetroButton>
                 </div>
 
-                <RetroButton
-                  variant={isTraining ? "danger" : "accent"}
-                  onClick={() => {
-                    setIsTraining((prev) => !prev);
-                    story.registerAction("train-auto");
-                  }}
-                  disabled={points.length === 0}
-                >
-                  {isTraining ? "Stop Auto" : "Train Auto"}
-                </RetroButton>
-              </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <RetroButton variant="secondary" onClick={handleResetWeights}>
+                    Reset Weights
+                  </RetroButton>
+                  <RetroButton variant="secondary" onClick={handleClearPoints}>
+                    Clear Points
+                  </RetroButton>
+                </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <RetroButton variant="secondary" onClick={handleResetWeights}>
-                  Reset Weights
-                </RetroButton>
-                <RetroButton variant="secondary" onClick={handleClearPoints}>
-                  Clear Canvas
-                </RetroButton>
+                <div className="pt-3 border-t border-[#4E665B]">
+                  <span className="font-pixel text-[10px] text-[#8DA397] block mb-2 uppercase">Presets</span>
+                  <div id="story-perceptron-preset-btn">
+                    <RetroButton variant="secondary" className="w-full text-xs" onClick={loadPresetSeparable}>
+                      Load Separable Dataset
+                    </RetroButton>
+                  </div>
+                </div>
               </div>
+            </RetroPanel>
+          </div>
 
-              {/* Preset Dataset */}
-              <div className="pt-3 border-t border-[#4E665B]">
-                <span className="font-pixel text-[10px] text-[#8DA397] block mb-2 uppercase">
-                  Presets
-                </span>
-                <RetroButton
-                  variant="secondary"
-                  className="w-full text-xs"
-                  onClick={loadPresetSeparable}
-                >
-                  Load Linearly Separable Data
-                </RetroButton>
-              </div>
-            </div>
-          </RetroPanel>
-
-          {/* Model Weights & Metrics Readout */}
-          <RetroPanel
-            title="Live Weight & Bias Readout"
-            borderColor="border-[#4E665B]"
-          >
-            <div id="story-weights-panel" className="space-y-3">
+          <RetroPanel title="Weight Vector & Accuracy" borderColor="border-[#4E665B]">
+            <div className="space-y-3 font-sans">
               <div className="grid grid-cols-3 gap-2 text-center">
                 <div className="bg-[#182320] p-2.5 rounded-xl border border-[#4E665B]">
-                  <span className="text-[#8DA397] block text-[9px] font-pixel">W1 (X1)</span>
-                  <span className="text-[#6FCF97] font-mono text-base font-bold">
-                    {weights.w1 >= 0 ? `+${weights.w1.toFixed(4)}` : weights.w1.toFixed(4)}
-                  </span>
+                  <span className="text-[#8DA397] block font-pixel text-[9px]">W1</span>
+                  <span className="text-[#6FCF97] font-mono text-base font-bold">{weights.w1.toFixed(2)}</span>
                 </div>
                 <div className="bg-[#182320] p-2.5 rounded-xl border border-[#4E665B]">
-                  <span className="text-[#8DA397] block text-[9px] font-pixel">W2 (X2)</span>
-                  <span className="text-[#6FCF97] font-mono text-base font-bold">
-                    {weights.w2 >= 0 ? `+${weights.w2.toFixed(4)}` : weights.w2.toFixed(4)}
-                  </span>
+                  <span className="text-[#8DA397] block font-pixel text-[9px]">W2</span>
+                  <span className="text-[#6FCF97] font-mono text-base font-bold">{weights.w2.toFixed(2)}</span>
                 </div>
                 <div className="bg-[#182320] p-2.5 rounded-xl border border-[#4E665B]">
-                  <span className="text-[#8DA397] block text-[9px] font-pixel">BIAS (b)</span>
-                  <span className="text-[#EAF4EE] font-mono text-base font-bold">
-                    {weights.bias >= 0 ? `+${weights.bias.toFixed(4)}` : weights.bias.toFixed(4)}
-                  </span>
+                  <span className="text-[#8DA397] block font-pixel text-[9px]">BIAS (b)</span>
+                  <span className="text-[#E9C46A] font-mono text-base font-bold">{weights.bias.toFixed(2)}</span>
                 </div>
               </div>
 
-              {/* Stats Bar */}
-              <div className="bg-[#182320] p-3 rounded-xl border border-[#4E665B] space-y-2 text-xs font-sans">
-                <div className="flex justify-between items-center">
-                  <span className="text-[#8DA397]">Total Samples:</span>
-                  <span className="text-[#EAF4EE] font-medium">{points.length} points</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-[#8DA397]">Training Steps:</span>
-                  <span className="text-[#6FCF97] font-mono font-medium">{stepCount}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-[#8DA397]">Accuracy:</span>
-                  <span className={`font-mono font-bold ${
-                    currentAccuracy === 100 ? "text-[#6FCF97]"
-                    : currentAccuracy >= 75 ? "text-[#E9C46A]"
-                    : "text-[#D96C6C]"
-                  }`}>
-                    {currentAccuracy}%
-                  </span>
-                </div>
+              <div className="bg-[#182320] p-3 rounded-xl border border-[#4E665B] flex justify-between items-center text-xs">
+                <span className="text-[#8DA397]">Classification Accuracy:</span>
+                <span
+                  className={`font-mono text-sm font-bold ${
+                    currentAccuracy === 100
+                      ? "text-[#6FCF97]"
+                      : currentAccuracy >= 75
+                      ? "text-[#E9C46A]"
+                      : "text-[#D96C6C]"
+                  }`}
+                >
+                  {points.length === 0 ? "—" : `${currentAccuracy}%`}
+                </span>
               </div>
 
-              {/* Formula display */}
-              <div className="bg-[#182320] p-3 rounded-xl border border-[#4E665B] text-xs text-[#8DA397] leading-relaxed">
-                <p className="text-[#E9C46A] font-pixel text-[9px] uppercase mb-1">
-                  Decision Equation:
-                </p>
-                <code className="font-mono text-xs text-[#EAF4EE]">
-                  {weights.w1.toFixed(2)}·x₁ + {weights.w2.toFixed(2)}·x₂ + {weights.bias.toFixed(2)} = 0
-                </code>
+              <div className="bg-[#182320] p-3 rounded-xl border border-[#4E665B] flex justify-between items-center text-xs">
+                <span className="text-[#8DA397]">Epochs Trained:</span>
+                <span className="text-[#6FCF97] font-mono font-bold">{stepCount}</span>
               </div>
             </div>
           </RetroPanel>
         </div>
       </div>
 
-      {/* ── Story Mode Dialogue Overlay ───────────────────────────────────── */}
+      {/* Story Mode Overlay */}
       {appMode === "story" && story.currentStep && (
         <NPCDialogueBox
           step={story.currentStep}
@@ -479,7 +480,7 @@ export default function PerceptronPlayground() {
         />
       )}
 
-      {/* ── Challenge Result Modal ────────────────────────────────────────── */}
+      {/* Challenge Result Modal */}
       {challenge.showModal && (
         <ChallengeResultModal
           challenge={perceptronChallenge}
