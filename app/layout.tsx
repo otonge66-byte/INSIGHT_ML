@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Press_Start_2P, VT323, Inter } from "next/font/google";
+import { ClerkProvider } from "@clerk/nextjs";
 import "./globals.css";
 
 const pressStart = Press_Start_2P({
@@ -51,14 +52,20 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const publishableKey =
+    process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ||
+    "pk_test_placeholder_key_for_static_generation";
+
   return (
-    <html
-      lang="en"
-      className={`${pressStart.variable} ${vt323.variable} ${inter.variable} h-full antialiased`}
-    >
-      <body className="min-h-full bg-[#182320] text-[#C9D7CF] font-sans flex flex-col selection:bg-[#6FCF97] selection:text-[#182320]">
-        {children}
-      </body>
-    </html>
+    <ClerkProvider publishableKey={publishableKey}>
+      <html
+        lang="en"
+        className={`${pressStart.variable} ${vt323.variable} ${inter.variable} h-full antialiased`}
+      >
+        <body className="min-h-full bg-[#182320] text-[#C9D7CF] font-sans flex flex-col selection:bg-[#6FCF97] selection:text-[#182320]">
+          {children}
+        </body>
+      </html>
+    </ClerkProvider>
   );
 }

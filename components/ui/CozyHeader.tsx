@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { BackButton } from "@/components/ui/BackButton";
+import { HeaderAuthButton } from "@/components/ui/HeaderAuthButton";
 
 interface CozyHeaderProps {
   title?: string;
@@ -20,8 +21,8 @@ export const CozyHeader: React.FC<CozyHeaderProps> = ({
   showBackButton = false,
   backHref = "/",
   backLabel = "Back to Dashboard",
-  userName = "Explorer",
-  userAvatar = "🤠",
+  userName = "Guest",
+  userAvatar = "👤",
   onToggleSidebar,
 }) => {
   const [timeStr, setTimeStr] = useState<string>("09:45");
@@ -80,7 +81,7 @@ export const CozyHeader: React.FC<CozyHeaderProps> = ({
         </div>
       </div>
 
-      {/* Right Widget Bar: Date, Clock, System Status (🟢 ONLINE), Avatar */}
+      {/* Right Widget Bar: Date, Clock, System Status (🟢 ONLINE), Auth Button */}
       <div className="flex items-center gap-2.5 font-sans text-xs text-[#C9D7CF] flex-wrap shrink-0">
         {/* Date */}
         <div className="flex items-center gap-1.5 bg-[#2C3C35] hover:bg-[#33463E] px-3 py-1.5 rounded-xl border border-[#4E665B] transition-colors duration-200">
@@ -94,21 +95,14 @@ export const CozyHeader: React.FC<CozyHeaderProps> = ({
           <span className="font-medium text-[#EAF4EE]">{timeStr}</span>
         </div>
 
-        {/* System Status: 🟢 ONLINE (replaces Summer) */}
+        {/* System Status: 🟢 ONLINE */}
         <div className="flex items-center gap-1.5 bg-[#2C3C35] hover:bg-[#33463E] px-3 py-1.5 rounded-xl border border-[#4E665B] transition-colors duration-200">
           <span className="w-2 h-2 rounded-full bg-[#6FCF97] animate-pulse" />
           <span className="font-mono text-xs font-bold text-[#6FCF97]">ONLINE</span>
         </div>
 
-        {/* Explorer Avatar Badge */}
-        <div className="flex items-center gap-2 bg-[#2C3C35] hover:bg-[#33463E] text-[#EAF4EE] px-3 py-1.5 rounded-xl border border-[#4E665B] transition-colors duration-200">
-          <div className="w-5 h-5 rounded-full bg-[#22302B] flex items-center justify-center text-xs border border-[#4E665B]">
-            {userAvatar}
-          </div>
-          <span className="font-sans text-xs font-medium text-[#6FCF97] truncate max-w-[110px]">
-            {userName}
-          </span>
-        </div>
+        {/* Clerk Auth / Guest Avatar Button */}
+        <HeaderAuthButton fallbackUserName={userName} fallbackUserAvatar={userAvatar} />
       </div>
     </header>
   );
