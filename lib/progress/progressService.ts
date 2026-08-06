@@ -1,4 +1,4 @@
-import { getSupabaseClient } from "@/lib/supabase/client";
+import { getSupabaseClient, isSupabaseConfigured } from "@/lib/supabase/client";
 import { fetchProfile, upsertProfile } from "../database/profileService";
 import {
   fetchProgress,
@@ -89,7 +89,7 @@ export async function ensureUserProfileAndProgress(
   },
   clerkToken?: string | null
 ): Promise<void> {
-  if (!clerkUserId) return;
+  if (!clerkUserId || !isSupabaseConfigured) return;
 
   const client = getSupabaseClient(clerkToken, clerkUserId);
 
@@ -138,6 +138,25 @@ export async function fetchUserProgressSummary(
   let badges: any[] = [];
   let isSyncError = false;
   let errorMessage: string | undefined = undefined;
+
+  if (!isSupabaseConfigured) {
+    console.warn("[WARNING] fetchUserProgressSummary: Supabase credentials missing in .env.local");
+    return {
+      profile: null,
+      progress: createInitialProgress(userId),
+      sessions: [],
+      dailyActivity: {},
+      moduleProgress: {},
+      achievements: [],
+      badges: [],
+      totalLearningDays: 0,
+      completionPercentage: 0,
+      currentRank: "Novice Explorer",
+      isSyncError: true,
+      errorMessage:
+        "Supabase API keys missing in .env.local. Please add your NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY from Supabase Settings -> API.",
+    };
+  }
 
   try {
     console.log(`[DEBUG] fetchUserProgressSummary (Supabase): Fetching data for user "${userId}"`);
