@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useUser, useAuth } from "@clerk/nextjs";
+import { useUser } from "@clerk/nextjs";
 import { ProgressSummary, LearningMode, XP_RATES } from "./types";
 import {
   fetchUserProgressSummary,
@@ -12,7 +12,6 @@ import {
 
 export function useLearningProgress() {
   const { user, isLoaded, isSignedIn } = useUser();
-  const { getToken } = useAuth();
   const userId = user?.id || "guest_user";
 
   const [summary, setSummary] = useState<ProgressSummary>(() => ({
@@ -36,19 +35,17 @@ export function useLearningProgress() {
     if (!isLoaded) return;
     setLoading(true);
     try {
-      let token: string | null = null;
       if (isSignedIn && user?.id) {
-        token = await getToken({ template: "supabase" });
         await ensureUserProfileAndProgress(user.id, {
           username: user.username || user.firstName || "Learner",
           email: user.primaryEmailAddress?.emailAddress || null,
           avatarUrl: user.imageUrl || null,
           firstName: user.firstName || "",
           lastName: user.lastName || "",
-        }, token);
+        });
       }
 
-      const data = await fetchUserProgressSummary(userId, token);
+      const data = await fetchUserProgressSummary(userId);
       setSummary(data);
     } catch (e) {
       console.warn("Error fetching user progress:", e);
@@ -60,7 +57,7 @@ export function useLearningProgress() {
     } finally {
       setLoading(false);
     }
-  }, [userId, isLoaded, isSignedIn, user, getToken]);
+  }, [userId, isLoaded, isSignedIn, user]);
 
   useEffect(() => {
     refreshProgress();
@@ -78,17 +75,16 @@ export function useLearningProgress() {
       loss?: number;
     }) => {
       try {
-        const token = await getToken({ template: "supabase" });
         const result = await recordLearningActivity({
           userId,
           ...params,
-        }, token);
+        });
         setSummary(result);
       } catch (err) {
         console.error("Failed to record learning activity in Supabase:", err);
       }
     },
-    [userId, getToken]
+    [userId]
   );
 
   const recordStoryCompletion = useCallback(

@@ -1,4 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://placeholder.supabase.co";
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "placeholder-key";
@@ -11,29 +11,23 @@ export const isSupabaseConfigured = Boolean(
     !process.env.NEXT_PUBLIC_SUPABASE_URL.includes("placeholder")
 );
 
-// Default public client using anon key
+// Singleton Supabase client instance using public anon key
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 /**
- * Creates an authenticated Supabase client inserting the Clerk Supabase JWT.
- * Fills in 'x-clerk-user-id' custom header as a fallback for Row Level Security verification.
+ * Returns a Supabase client configured with the Clerk User ID header if provided.
+ * Does NOT require or request any Clerk JWT templates or Supabase Auth tokens.
  */
-export function getSupabaseClient(clerkToken?: string | null, clerkUserId?: string | null) {
-  if (!clerkToken) {
+export function getSupabaseClient(clerkUserId?: string | null): SupabaseClient {
+  if (!clerkUserId || clerkUserId === "guest_user") {
     return supabase;
-  }
-
-  const headers: Record<string, string> = {
-    Authorization: `Bearer ${clerkToken}`,
-  };
-
-  if (clerkUserId) {
-    headers["x-clerk-user-id"] = clerkUserId;
   }
 
   return createClient(supabaseUrl, supabaseAnonKey, {
     global: {
-      headers,
+      headers: {
+        "x-clerk-user-id": clerkUserId,
+      },
     },
   });
 }
