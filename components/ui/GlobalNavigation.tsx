@@ -2,19 +2,11 @@
 
 import React, { useState, useEffect } from "react";
 import { CozySidebar } from "@/components/ui/CozySidebar";
-import { getFirebaseAnalytics } from "@/lib/firebase/client";
 
 export const GlobalNavigation: React.FC<{ children?: React.ReactNode }> = ({
   children,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
-
-  // Initialize Firebase Analytics on client-side load
-  useEffect(() => {
-    getFirebaseAnalytics().catch((err) => {
-      console.warn("Failed to initialize Firebase Analytics:", err);
-    });
-  }, []);
 
   // Prevent background scrolling when sidebar drawer is open
   useEffect(() => {

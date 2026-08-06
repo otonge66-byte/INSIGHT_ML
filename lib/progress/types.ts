@@ -83,6 +83,7 @@ export interface ProgressSummary {
   dailyActivity: Record<string, DailyActivity>; // activity_date -> DailyActivity
   moduleProgress: Record<string, ModuleProgress>; // module_name -> ModuleProgress
   achievements: Achievement[];
+  badges: any[];
   totalLearningDays: number;
   completionPercentage: number;
   currentRank: string;
