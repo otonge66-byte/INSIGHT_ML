@@ -16,7 +16,7 @@ export async function fetchProfile(
       // No rows returned
       return null;
     }
-    console.error("fetchProfile failed:", error);
+    console.error(`[ERROR] fetchProfile failed: Table: profiles | User: ${clerkUserId} | Code: ${error.code} | Message: ${error.message}`);
     throw error;
   }
 
@@ -67,7 +67,7 @@ export async function upsertProfile(
     .single();
 
   if (error) {
-    console.error("upsertProfile failed:", error);
+    console.error(`[ERROR] upsertProfile failed: Table: profiles | User: ${clerkUserId} | Code: ${error.code} | Message: ${error.message}`);
     throw error;
   }
 

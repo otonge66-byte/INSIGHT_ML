@@ -15,7 +15,7 @@ export async function fetchProgress(
     if (error.code === "PGRST116") {
       return null;
     }
-    console.error("fetchProgress failed:", error);
+    console.error(`[ERROR] fetchProgress failed: Table: user_progress | User: ${clerkUserId} | Code: ${error.code} | Message: ${error.message}`);
     throw error;
   }
 
@@ -62,7 +62,7 @@ export async function upsertProgress(
     .single();
 
   if (error) {
-    console.error("upsertProgress failed:", error);
+    console.error(`[ERROR] upsertProgress failed: Table: user_progress | User: ${progress.clerk_user_id} | Code: ${error.code} | Message: ${error.message}`);
     throw error;
   }
 
@@ -91,7 +91,7 @@ export async function fetchModuleProgressList(
     .eq("clerk_user_id", clerkUserId);
 
   if (error) {
-    console.error("fetchModuleProgressList failed:", error);
+    console.error(`[ERROR] fetchModuleProgressList failed: Table: module_progress | User: ${clerkUserId} | Code: ${error.code} | Message: ${error.message}`);
     throw error;
   }
 
@@ -132,7 +132,7 @@ export async function upsertModuleProgress(
     .single();
 
   if (error) {
-    console.error("upsertModuleProgress failed:", error);
+    console.error(`[ERROR] upsertModuleProgress failed: Table: module_progress | User: ${progress.clerk_user_id} | Module: ${progress.module_name} | Code: ${error.code} | Message: ${error.message}`);
     throw error;
   }
 

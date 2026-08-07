@@ -1,4 +1,11 @@
--- Enable UUID generation extension if not exists
+-- InsightML Production Schema
+-- Authentication: Clerk (no Supabase Auth)
+-- Security: Application-level filtering by clerk_user_id. RLS disabled.
+-- Run this in Supabase SQL Editor to reset and initialize the database.
+
+-- ==========================================
+-- EXTENSIONS
+-- ==========================================
 create extension if not exists "uuid-ossp";
 
 -- ==========================================
@@ -28,7 +35,7 @@ create table if not exists public.user_progress (
   total_learning_minutes integer default 0,
   completed_modules text[] default '{}',
   completed_challenges text[] default '{}',
-  last_activity timestamp with time zone,
+  last_activity date,
   updated_at timestamp with time zone default now()
 );
 
@@ -43,7 +50,7 @@ create table if not exists public.daily_activity (
   learning_minutes integer default 0,
   modules_completed integer default 0,
   challenges_completed integer default 0,
-  streak_counted boolean default false,
+  streak_counted boolean default true,
   created_at timestamp with time zone default now(),
   unique (clerk_user_id, activity_date)
 );
@@ -102,7 +109,7 @@ create table if not exists public.badges (
 );
 
 -- ==========================================
--- PERFORMANCE INDEXES (Phase 13)
+-- PERFORMANCE INDEXES
 -- ==========================================
 create index if not exists idx_profiles_clerk_user_id on public.profiles(clerk_user_id);
 create index if not exists idx_user_progress_clerk_user_id on public.user_progress(clerk_user_id);
@@ -113,7 +120,7 @@ create index if not exists idx_achievements_clerk_user_id on public.achievements
 create index if not exists idx_badges_clerk_user_id on public.badges(clerk_user_id);
 
 -- ==========================================
--- ROW LEVEL SECURITY (RLS) POLICIES (Phase 5)
+-- ROW LEVEL SECURITY (RLS) POLICIES
 -- ==========================================
 alter table public.profiles enable row level security;
 alter table public.user_progress enable row level security;
@@ -123,56 +130,58 @@ alter table public.module_progress enable row level security;
 alter table public.achievements enable row level security;
 alter table public.badges enable row level security;
 
--- Helper to retrieve Clerk User ID from either auth.uid() (Clerk Supabase JWT)
--- or fallback client header claim x-clerk-user-id
+-- Helper to retrieve Clerk User ID from client header x-clerk-user-id
 create or replace function public.current_clerk_user_id() 
 returns text as $$
 begin
-  return coalesce(
-    nullif(auth.uid()::text, ''),
-    nullif(coalesce(nullif(current_setting('request.headers', true), ''), '{}')::json->>'x-clerk-user-id', '')
-  );
+  return nullif(current_setting('request.headers', true)::json->>'x-clerk-user-id', '');
+exception
+  when others then
+    return null;
 end;
-$$ language plpgsql security definer;
+$$ language plpgsql stable security definer;
 
--- Profiles policies
+-- Drop policies if they already exist
 drop policy if exists "Manage own profile" on public.profiles;
-create policy "Manage own profile" on public.profiles
-  for all using (public.current_clerk_user_id() is null or public.current_clerk_user_id() = clerk_user_id)
-  with check (public.current_clerk_user_id() is null or public.current_clerk_user_id() = clerk_user_id);
-
--- User Progress policies
 drop policy if exists "Manage own progress" on public.user_progress;
-create policy "Manage own progress" on public.user_progress
-  for all using (public.current_clerk_user_id() is null or public.current_clerk_user_id() = clerk_user_id)
-  with check (public.current_clerk_user_id() is null or public.current_clerk_user_id() = clerk_user_id);
-
--- Daily Activity policies
 drop policy if exists "Manage own daily activity" on public.daily_activity;
-create policy "Manage own daily activity" on public.daily_activity
-  for all using (public.current_clerk_user_id() is null or public.current_clerk_user_id() = clerk_user_id)
-  with check (public.current_clerk_user_id() is null or public.current_clerk_user_id() = clerk_user_id);
-
--- Learning Sessions policies
 drop policy if exists "Manage own learning sessions" on public.learning_sessions;
-create policy "Manage own learning sessions" on public.learning_sessions
-  for all using (public.current_clerk_user_id() is null or public.current_clerk_user_id() = clerk_user_id)
-  with check (public.current_clerk_user_id() is null or public.current_clerk_user_id() = clerk_user_id);
-
--- Module Progress policies
 drop policy if exists "Manage own module progress" on public.module_progress;
-create policy "Manage own module progress" on public.module_progress
-  for all using (public.current_clerk_user_id() is null or public.current_clerk_user_id() = clerk_user_id)
-  with check (public.current_clerk_user_id() is null or public.current_clerk_user_id() = clerk_user_id);
-
--- Achievements policies
 drop policy if exists "Manage own achievements" on public.achievements;
-create policy "Manage own achievements" on public.achievements
-  for all using (public.current_clerk_user_id() is null or public.current_clerk_user_id() = clerk_user_id)
-  with check (public.current_clerk_user_id() is null or public.current_clerk_user_id() = clerk_user_id);
-
--- Badges policies
 drop policy if exists "Manage own badges" on public.badges;
+
+-- Create policies for Profiles
+create policy "Manage own profile" on public.profiles
+  for all using (public.current_clerk_user_id() = clerk_user_id)
+  with check (public.current_clerk_user_id() = clerk_user_id);
+
+-- Create policies for User Progress
+create policy "Manage own progress" on public.user_progress
+  for all using (public.current_clerk_user_id() = clerk_user_id)
+  with check (public.current_clerk_user_id() = clerk_user_id);
+
+-- Create policies for Daily Activity
+create policy "Manage own daily activity" on public.daily_activity
+  for all using (public.current_clerk_user_id() = clerk_user_id)
+  with check (public.current_clerk_user_id() = clerk_user_id);
+
+-- Create policies for Learning Sessions
+create policy "Manage own learning sessions" on public.learning_sessions
+  for all using (public.current_clerk_user_id() = clerk_user_id)
+  with check (public.current_clerk_user_id() = clerk_user_id);
+
+-- Create policies for Module Progress
+create policy "Manage own module progress" on public.module_progress
+  for all using (public.current_clerk_user_id() = clerk_user_id)
+  with check (public.current_clerk_user_id() = clerk_user_id);
+
+-- Create policies for Achievements
+create policy "Manage own achievements" on public.achievements
+  for all using (public.current_clerk_user_id() = clerk_user_id)
+  with check (public.current_clerk_user_id() = clerk_user_id);
+
+-- Create policies for Badges
 create policy "Manage own badges" on public.badges
-  for all using (public.current_clerk_user_id() is null or public.current_clerk_user_id() = clerk_user_id)
-  with check (public.current_clerk_user_id() is null or public.current_clerk_user_id() = clerk_user_id);
+  for all using (public.current_clerk_user_id() = clerk_user_id)
+  with check (public.current_clerk_user_id() = clerk_user_id);
+

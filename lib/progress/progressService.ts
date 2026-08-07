@@ -25,21 +25,21 @@ import {
   LearningMode,
 } from "./types";
 
+/**
+ * Returns today's date string in YYYY-MM-DD using UTC to avoid
+ * timezone-boundary bugs where midnight local time crosses a date boundary.
+ */
 export function getTodayDateString(): string {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
+  return new Date().toISOString().split("T")[0];
 }
 
+/**
+ * Returns yesterday's date string in YYYY-MM-DD using UTC.
+ */
 export function getYesterdayDateString(): string {
-  const yesterday = new Date();
-  yesterday.setDate(yesterday.getDate() - 1);
-  const year = yesterday.getFullYear();
-  const month = String(yesterday.getMonth() + 1).padStart(2, "0");
-  const day = String(yesterday.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
+  const d = new Date();
+  d.setUTCDate(d.getUTCDate() - 1);
+  return d.toISOString().split("T")[0];
 }
 
 export function calculateRank(totalXP: number): string {
@@ -93,30 +93,59 @@ export async function ensureUserProfileAndProgress(
   const client = getSupabaseClient(clerkUserId);
 
   try {
-    console.log(`[DEBUG] ensureUserProfileAndProgress (Supabase): syncing for Clerk ID "${clerkUserId}"`);
+    console.log(`[DEBUG] ensureUserProfileAndProgress: syncing for Clerk ID "${clerkUserId}"`);
 
-    // 1. Check & Upsert Profile
-    let profile = await fetchProfile(client, clerkUserId);
-    if (!profile) {
-      profile = await upsertProfile(client, clerkUserId, {
-        username: details?.username || "Learner",
-        email: details?.email || null,
-        firstName: details?.firstName || "",
-        lastName: details?.lastName || "",
-        avatarUrl: details?.avatarUrl || null,
-      });
-      console.log("Supabase profile auto-created successfully");
-    }
+    // 1. Upsert Profile — idempotent, safe to call multiple times
+    await upsertProfile(client, clerkUserId, {
+      username: details?.username || "Learner",
+      email: details?.email || null,
+      firstName: details?.firstName || "",
+      lastName: details?.lastName || "",
+      avatarUrl: details?.avatarUrl || null,
+    });
 
-    // 2. Check & Upsert Progress
-    const progress = await fetchProgress(client, clerkUserId);
-    if (!progress) {
+    // 2. Upsert initial Progress — only inserts if missing (upsert with onConflict)
+    const existing = await fetchProgress(client, clerkUserId);
+    if (!existing) {
       const initialProgress = createInitialProgress(clerkUserId);
       await upsertProgress(client, initialProgress);
-      console.log("Supabase progress row auto-created successfully");
+      console.log("[DEBUG] ensureUserProfileAndProgress: initial progress row created");
     }
+
+    // 3. Record today's login activity for streak tracking
+    const todayStr = getTodayDateString();
+    const activityMap = await fetchDailyActivities(client, clerkUserId);
+    if (!activityMap[todayStr]) {
+      await upsertDailyActivity(client, clerkUserId, {
+        activity_date: todayStr,
+        xp: 0,
+        learning_minutes: 0,
+        completed_modules: 0,
+        completed_challenges: 0,
+        streak_counted: true,
+      });
+      console.log(`[DEBUG] ensureUserProfileAndProgress: daily activity recorded for ${todayStr}`);
+    }
+
+    // 4. Recalculate and update streak based purely on database records
+    const { currentStreak, longestStreak } = await calculateStreaks(client, clerkUserId);
+    const existingProgress = await fetchProgress(client, clerkUserId);
+    if (existingProgress) {
+      const newLongest = Math.max(longestStreak, existingProgress.longest_streak ?? 0);
+      await upsertProgress(client, {
+        ...existingProgress,
+        current_streak: currentStreak,
+        longest_streak: newLongest,
+        last_activity_date: todayStr,
+      });
+    }
+
+    console.log(`[DEBUG] ensureUserProfileAndProgress: complete. Streak = ${currentStreak}`);
   } catch (e: any) {
-    console.error(`[ERROR] ensureUserProfileAndProgress failed for ID "${clerkUserId}":`, e);
+    console.error(
+      `[ERROR] ensureUserProfileAndProgress failed for ID "${clerkUserId}":`,
+      `Table: profiles/user_progress | Code: ${e?.code} | Message: ${e?.message}`
+    );
     throw e;
   }
 }
@@ -152,44 +181,31 @@ export async function fetchUserProgressSummary(
       currentRank: "Novice Explorer",
       isSyncError: true,
       errorMessage:
-        "Supabase API keys missing in .env.local. Please add your NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY from Supabase Settings -> API.",
+        "Supabase API keys missing in .env.local. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY from Supabase Settings → API.",
     };
   }
 
   try {
-    console.log(`[DEBUG] fetchUserProgressSummary (Supabase): Fetching data for user "${userId}"`);
+    console.log(`[DEBUG] fetchUserProgressSummary: fetching data for user "${userId}"`);
 
-    // 1. Fetch Profile
-    profile = await fetchProfile(client, userId);
-
-    // 2. Fetch Progress
-    const fetchedProg = await fetchProgress(client, userId);
-    if (fetchedProg) {
-      progress = fetchedProg;
-    }
-
-    // 3. Fetch Daily Activities
-    dailyActivityMap = await fetchDailyActivities(client, userId);
-
-    // 4. Fetch Module Progress
-    const modules = await fetchModuleProgressList(client, userId);
-    modules.forEach((m) => {
-      moduleProgressMap[m.module_name] = m;
-    });
-
-    // 5. Fetch Achievements
-    achievements = await fetchAchievements(client, userId);
-
-    // 6. Fetch Badges
-    badges = await fetchBadges(client, userId);
-
-    // 7. Fetch Learning Sessions
-    sessions = await fetchLearningSessions(client, userId);
-
+    [profile, , dailyActivityMap, , achievements, badges, sessions] = await Promise.all([
+      fetchProfile(client, userId),
+      fetchProgress(client, userId).then((p) => { if (p) progress = p; }),
+      fetchDailyActivities(client, userId),
+      fetchModuleProgressList(client, userId).then((mods) => {
+        mods.forEach((m) => { moduleProgressMap[m.module_name] = m; });
+      }),
+      fetchAchievements(client, userId),
+      fetchBadges(client, userId),
+      fetchLearningSessions(client, userId),
+    ]);
   } catch (e: any) {
     isSyncError = true;
-    errorMessage = "Unable to sync your progress with Supabase. Please check your connection.";
-    console.error(`[ERROR] fetchUserProgressSummary failed for ID "${userId}":`, e);
+    errorMessage = `Sync failed (${e?.code || "UNKNOWN"}): ${e?.message || "Unable to connect to database."}`;
+    console.error(
+      `[ERROR] fetchUserProgressSummary failed for ID "${userId}":`,
+      `Code: ${e?.code} | Message: ${e?.message}`
+    );
   }
 
   const totalLearningDays = Object.keys(dailyActivityMap).length;
@@ -243,7 +259,7 @@ export async function recordLearningActivity(
   const todayStr = getTodayDateString();
 
   try {
-    console.log(`[DEBUG] recordLearningActivity (Supabase): Recording activity for user "${userId}"`);
+    console.log(`[DEBUG] recordLearningActivity: recording activity for user "${userId}"`);
 
     // 1. Fetch current progress
     let existingProgress = await fetchProgress(client, userId);
@@ -251,25 +267,25 @@ export async function recordLearningActivity(
       existingProgress = createInitialProgress(userId);
     }
 
-    // 2. Fetch or update daily activity first to ensure accurate date logs
+    // 2. Upsert daily activity (accumulates within same day)
     const existingDailyActivities = await fetchDailyActivities(client, userId);
     const existingTodayAct = existingDailyActivities[todayStr];
-    
+
     await upsertDailyActivity(client, userId, {
       activity_date: todayStr,
       xp: (existingTodayAct?.xp || 0) + xpEarned,
       learning_minutes: (existingTodayAct?.learning_minutes || 0) + durationMinutes,
       completed_modules: (existingTodayAct?.completed_modules || 0) + 1,
-      completed_challenges: completedChallengeId 
-        ? (existingTodayAct?.completed_challenges || 0) + 1 
+      completed_challenges: completedChallengeId
+        ? (existingTodayAct?.completed_challenges || 0) + 1
         : (existingTodayAct?.completed_challenges || 0),
       streak_counted: true,
     });
 
-    // 3. Recalculate streaks dynamically from the database
+    // 3. Recalculate streaks from database (source of truth)
     const { currentStreak, longestStreak } = await calculateStreaks(client, userId);
 
-    // 4. Update the parent user_progress row
+    // 4. Update user_progress
     const completedModulesSet = new Set(existingProgress.completed_modules || []);
     completedModulesSet.add(moduleName);
 
@@ -278,10 +294,13 @@ export async function recordLearningActivity(
       completedChallengesSet.add(completedChallengeId);
     }
 
+    const newTotalXP = (existingProgress.total_xp || 0) + xpEarned;
+    const newLevel = Math.floor(newTotalXP / 200) + 1;
+
     const updatedProgress: UserProgress = {
       clerk_user_id: userId,
-      total_xp: (existingProgress.total_xp || 0) + xpEarned,
-      current_level: Math.floor(((existingProgress.total_xp || 0) + xpEarned) / 200) + 1,
+      total_xp: newTotalXP,
+      current_level: newLevel,
       current_streak: currentStreak,
       longest_streak: longestStreak,
       completed_modules: Array.from(completedModulesSet),
@@ -292,7 +311,7 @@ export async function recordLearningActivity(
 
     await upsertProgress(client, updatedProgress);
 
-    // 5. Log the learning session row
+    // 5. Log learning session
     await logLearningSession(client, userId, {
       moduleName,
       mode,
@@ -302,7 +321,7 @@ export async function recordLearningActivity(
       loss: loss ?? null,
     });
 
-    // 6. Update individual moduleProgress row
+    // 6. Update module-level progress
     const modules = await fetchModuleProgressList(client, userId);
     const existingMod = modules.find((m) => m.module_name === moduleName);
 
@@ -312,15 +331,17 @@ export async function recordLearningActivity(
       story_completed: mode === "Story" || Boolean(existingMod?.story_completed),
       sandbox_completed: mode === "Sandbox" || Boolean(existingMod?.sandbox_completed),
       challenge_completed: Boolean(completedChallengeId) || Boolean(existingMod?.challenge_completed),
-      best_accuracy: accuracy && existingMod?.best_accuracy 
-        ? Math.max(accuracy, existingMod.best_accuracy) 
-        : (accuracy ?? existingMod?.best_accuracy ?? null),
-      best_loss: loss && existingMod?.best_loss 
-        ? Math.min(loss, existingMod.best_loss) 
-        : (loss ?? existingMod?.best_loss ?? null),
+      best_accuracy:
+        accuracy && existingMod?.best_accuracy
+          ? Math.max(accuracy, existingMod.best_accuracy)
+          : (accuracy ?? existingMod?.best_accuracy ?? null),
+      best_loss:
+        loss && existingMod?.best_loss
+          ? Math.min(loss, existingMod.best_loss)
+          : (loss ?? existingMod?.best_loss ?? null),
     });
 
-    // 7. Check and award achievements & badges
+    // 7. Auto-unlock achievements & badges
     if (currentStreak >= 7) {
       await unlockAchievement(client, userId, "streak_7_days");
       await awardBadge(client, userId, "streak_7_days");
@@ -329,8 +350,14 @@ export async function recordLearningActivity(
       await unlockAchievement(client, userId, "all_modules_completed");
       await awardBadge(client, userId, "all_modules_completed");
     }
+    if (newTotalXP >= 100) {
+      await unlockAchievement(client, userId, "xp_100");
+    }
   } catch (e: any) {
-    console.error(`[ERROR] recordLearningActivity failed for user "${userId}":`, e);
+    console.error(
+      `[ERROR] recordLearningActivity failed for user "${userId}":`,
+      `Module: ${moduleName} | Mode: ${mode} | Code: ${e?.code} | Message: ${e?.message}`
+    );
     throw e;
   }
 

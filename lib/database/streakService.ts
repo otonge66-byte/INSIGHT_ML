@@ -2,13 +2,19 @@ import { SupabaseClient } from "@supabase/supabase-js";
 import { DailyActivity } from "../progress/types";
 
 /**
- * Calculates current and longest streaks from the daily_activity table.
+ * Calculates current and longest streaks from daily_activity records.
+ *
+ * Rules:
+ * - First ever login  → streak = 1
+ * - Consecutive next-day login → streak + 1
+ * - Multiple logins same day → streak does NOT increase
+ * - Missing one full day → streak resets to 1
+ * - All dates compared in UTC YYYY-MM-DD to avoid timezone boundary bugs
  */
 export async function calculateStreaks(
   client: SupabaseClient,
   clerkUserId: string
 ): Promise<{ currentStreak: number; longestStreak: number }> {
-  // Query all daily activities sorted by activity_date descending
   const { data, error } = await client
     .from("daily_activity")
     .select("activity_date")
@@ -16,7 +22,9 @@ export async function calculateStreaks(
     .order("activity_date", { ascending: false });
 
   if (error) {
-    console.error("calculateStreaks failed:", error);
+    console.error(
+      `[ERROR] calculateStreaks failed: Table: daily_activity | User: ${clerkUserId} | Code: ${error.code} | Message: ${error.message}`
+    );
     return { currentStreak: 0, longestStreak: 0 };
   }
 
@@ -24,67 +32,67 @@ export async function calculateStreaks(
     return { currentStreak: 0, longestStreak: 0 };
   }
 
+  // Deduplicate and sort descending (dates come from DB as strings "YYYY-MM-DD")
+  const uniqueDates = Array.from(new Set(data.map((d) => d.activity_date))).sort(
+    (a, b) => b.localeCompare(a)
+  );
+
   const todayStr = new Date().toISOString().split("T")[0];
-  const yesterday = new Date();
-  yesterday.setDate(yesterday.getDate() - 1);
-  const yesterdayStr = yesterday.toISOString().split("T")[0];
+  const yesterdayDate = new Date();
+  yesterdayDate.setUTCDate(yesterdayDate.getUTCDate() - 1);
+  const yesterdayStr = yesterdayDate.toISOString().split("T")[0];
 
-  const dates = data.map((d) => d.activity_date);
-  
-  // 1. Calculate Current Streak
+  // ── Current Streak ──────────────────────────────────────────────────────
+  // Streak is only active if the most recent activity was today OR yesterday.
   let currentStreak = 0;
-  let expectedDateStr = dates[0];
+  const mostRecent = uniqueDates[0];
 
-  // The streak is active only if the most recent activity was today or yesterday
-  if (expectedDateStr === todayStr || expectedDateStr === yesterdayStr) {
+  if (mostRecent === todayStr || mostRecent === yesterdayStr) {
     currentStreak = 1;
-    let prevDate = new Date(expectedDateStr);
+    let prevDateStr = mostRecent;
 
-    for (let i = 1; i < dates.length; i++) {
-      const currentDate = new Date(dates[i]);
-      const diffTime = Math.abs(prevDate.getTime() - currentDate.getTime());
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    for (let i = 1; i < uniqueDates.length; i++) {
+      const currDateStr = uniqueDates[i];
+      const diffDays = daysBetween(prevDateStr, currDateStr);
 
       if (diffDays === 1) {
         currentStreak++;
-        prevDate = currentDate;
-      } else if (diffDays === 0) {
-        // Skip duplicate date entries if any
-        continue;
+        prevDateStr = currDateStr;
       } else {
-        break; // Streak broken
+        break; // Gap found — streak is broken
       }
     }
   }
 
-  // 2. Calculate Longest Streak
+  // ── Longest Streak ──────────────────────────────────────────────────────
   let longestStreak = 0;
-  if (dates.length > 0) {
-    let tempStreak = 1;
-    let prevDate = new Date(dates[0]);
+  let tempStreak = 1;
 
-    longestStreak = Math.max(longestStreak, tempStreak);
+  longestStreak = Math.max(longestStreak, 1); // At least 1 if we have any activity
 
-    for (let i = 1; i < dates.length; i++) {
-      const currentDate = new Date(dates[i]);
-      const diffTime = Math.abs(prevDate.getTime() - currentDate.getTime());
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-      if (diffDays === 1) {
-        tempStreak++;
-        longestStreak = Math.max(longestStreak, tempStreak);
-        prevDate = currentDate;
-      } else if (diffDays === 0) {
-        continue;
-      } else {
-        tempStreak = 1;
-        longestStreak = Math.max(longestStreak, tempStreak);
-        prevDate = currentDate;
-      }
+  for (let i = 1; i < uniqueDates.length; i++) {
+    const diffDays = daysBetween(uniqueDates[i - 1], uniqueDates[i]);
+    if (diffDays === 1) {
+      tempStreak++;
+      longestStreak = Math.max(longestStreak, tempStreak);
+    } else {
+      tempStreak = 1;
     }
   }
+
+  longestStreak = Math.max(longestStreak, currentStreak);
 
   return { currentStreak, longestStreak };
+}
+
+/**
+ * Returns the number of calendar days between two "YYYY-MM-DD" strings.
+ * Always returns a positive number.
+ */
+function daysBetween(laterStr: string, earlierStr: string): number {
+  const later = new Date(laterStr + "T00:00:00Z").getTime();
+  const earlier = new Date(earlierStr + "T00:00:00Z").getTime();
+  return Math.round(Math.abs(later - earlier) / (1000 * 60 * 60 * 24));
 }
 
 export async function fetchDailyActivities(
@@ -94,10 +102,13 @@ export async function fetchDailyActivities(
   const { data, error } = await client
     .from("daily_activity")
     .select("*")
-    .eq("clerk_user_id", clerkUserId);
+    .eq("clerk_user_id", clerkUserId)
+    .order("activity_date", { ascending: false });
 
   if (error) {
-    console.error("fetchDailyActivities failed:", error);
+    console.error(
+      `[ERROR] fetchDailyActivities failed: Table: daily_activity | User: ${clerkUserId} | Code: ${error.code} | Message: ${error.message}`
+    );
     throw error;
   }
 
@@ -124,8 +135,6 @@ export async function upsertDailyActivity(
   clerkUserId: string,
   activity: Partial<DailyActivity> & { activity_date: string }
 ): Promise<DailyActivity> {
-  const now = new Date().toISOString();
-
   const payload = {
     clerk_user_id: clerkUserId,
     activity_date: activity.activity_date,
@@ -134,7 +143,6 @@ export async function upsertDailyActivity(
     modules_completed: activity.completed_modules ?? 0,
     challenges_completed: activity.completed_challenges ?? 0,
     streak_counted: activity.streak_counted ?? true,
-    created_at: now,
   };
 
   const { data, error } = await client
@@ -144,7 +152,9 @@ export async function upsertDailyActivity(
     .single();
 
   if (error) {
-    console.error("upsertDailyActivity failed:", error);
+    console.error(
+      `[ERROR] upsertDailyActivity failed: Table: daily_activity | User: ${clerkUserId} | Date: ${activity.activity_date} | Code: ${error.code} | Message: ${error.message}`
+    );
     throw error;
   }
 

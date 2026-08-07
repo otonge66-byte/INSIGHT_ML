@@ -13,7 +13,10 @@ import {
 export function useLearningProgress() {
   const { user, isLoaded, isSignedIn } = useUser();
   const userId = user?.id || "guest_user";
-  const initializedRef = useRef<string | null>(null);
+
+  // Tracks which userId has been fully initialized this React session.
+  // Using a Set allows re-initialization if user switches accounts.
+  const initializedRef = useRef<Set<string>>(new Set());
 
   const [summary, setSummary] = useState<ProgressSummary>(() => ({
     profile: null,
@@ -31,14 +34,20 @@ export function useLearningProgress() {
 
   const [loading, setLoading] = useState<boolean>(true);
 
-  // Initialize profile & fetch database summary on load
+  /**
+   * Initializes user profile in Supabase and loads all progress data.
+   * Safe to call on every page load — all DB operations are idempotent.
+   */
   const refreshProgress = useCallback(async () => {
     if (!isLoaded) return;
     setLoading(true);
+
     try {
       if (isSignedIn && user?.id) {
-        if (initializedRef.current !== user.id) {
-          initializedRef.current = user.id;
+        // Run ensureUserProfileAndProgress once per userId per session.
+        // This records the daily login activity for streak tracking.
+        if (!initializedRef.current.has(user.id)) {
+          initializedRef.current.add(user.id);
           await ensureUserProfileAndProgress(user.id, {
             username: user.username || user.firstName || "Learner",
             email: user.primaryEmailAddress?.emailAddress || null,
@@ -51,12 +60,12 @@ export function useLearningProgress() {
 
       const data = await fetchUserProgressSummary(userId);
       setSummary(data);
-    } catch (e) {
-      console.warn("Error fetching user progress:", e);
+    } catch (e: any) {
+      console.error("[ERROR] refreshProgress failed:", e);
       setSummary((prev) => ({
         ...prev,
         isSyncError: true,
-        errorMessage: "Unable to sync your progress. Please check your connection.",
+        errorMessage: `Sync failed (${e?.code || "NETWORK"}): ${e?.message || "Check your internet connection and Supabase credentials."}`,
       }));
     } finally {
       setLoading(false);
@@ -67,7 +76,7 @@ export function useLearningProgress() {
     refreshProgress();
   }, [refreshProgress]);
 
-  // Record activity directly to Supabase
+  /** Records any learning activity to Supabase and updates local state. */
   const recordActivity = useCallback(
     async (params: {
       moduleName: string;
@@ -78,40 +87,41 @@ export function useLearningProgress() {
       accuracy?: number;
       loss?: number;
     }) => {
+      if (!userId || userId === "guest_user") {
+        console.warn("[WARN] recordActivity: user not signed in, skipping.");
+        return;
+      }
       try {
-        const result = await recordLearningActivity({
-          userId,
-          ...params,
-        });
+        const result = await recordLearningActivity({ userId, ...params });
         setSummary(result);
-      } catch (err) {
-        console.error("Failed to record learning activity in Supabase:", err);
+      } catch (err: any) {
+        console.error(
+          `[ERROR] recordActivity failed: Module: ${params.moduleName} | Mode: ${params.mode} | Code: ${err?.code} | Message: ${err?.message}`
+        );
       }
     },
     [userId]
   );
 
   const recordStoryCompletion = useCallback(
-    (moduleName: string) => {
-      return recordActivity({
+    (moduleName: string) =>
+      recordActivity({
         moduleName,
         mode: "Story",
         xpEarned: XP_RATES.STORY_MODE,
         durationMinutes: 5,
-      });
-    },
+      }),
     [recordActivity]
   );
 
   const recordSandboxActivity = useCallback(
-    (moduleName: string, durationMinutes = 5) => {
-      return recordActivity({
+    (moduleName: string, durationMinutes = 5) =>
+      recordActivity({
         moduleName,
         mode: "Sandbox",
         xpEarned: XP_RATES.SANDBOX_MODE,
         durationMinutes,
-      });
-    },
+      }),
     [recordActivity]
   );
 

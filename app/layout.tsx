@@ -28,6 +28,9 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"
+  ),
   title: "InsightML • Interactive Machine Learning Playground",
   description:
     "Watch machine learning happen right in your browser. Explore Perceptron, Gradient Descent, and Neural Networks — no setup, no coding, free for everyone.",

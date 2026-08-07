@@ -1,37 +1,45 @@
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://placeholder.supabase.co";
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "placeholder-key";
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
 
 export const isSupabaseConfigured = Boolean(
-  process.env.NEXT_PUBLIC_SUPABASE_URL &&
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY &&
-    !process.env.NEXT_PUBLIC_SUPABASE_URL.includes("your-project") &&
-    !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY.includes("your-supabase-anon-key") &&
-    !process.env.NEXT_PUBLIC_SUPABASE_URL.includes("placeholder")
+  supabaseUrl &&
+    supabaseAnonKey &&
+    supabaseUrl.startsWith("https://") &&
+    !supabaseUrl.includes("your-project") &&
+    !supabaseUrl.includes("placeholder")
 );
 
 /**
- * SINGLETON Supabase browser client instance.
- * Disabling session persistence avoids duplicate GoTrueClient instances in browser context.
+ * SINGLETON browser Supabase client.
+ * Supabase Auth is disabled — authentication is handled 100% by Clerk.
+ * We pass the Clerk User ID via custom request headers to satisfy Row Level Security (RLS) policies.
  */
-export const supabase: SupabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    persistSession: false,
-    autoRefreshToken: false,
-    detectSessionInUrl: false,
-  },
-});
+export const supabase: SupabaseClient = isSupabaseConfigured
+  ? createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false,
+      },
+    })
+  : (null as unknown as SupabaseClient);
 
 /**
- * Returns the exact SINGLETON browser client instance.
- * Dynamically injects the Clerk User ID header on the singleton client.
+ * Returns the singleton browser Supabase client with the Clerk User ID header injected dynamically.
+ * Eliminates duplicate GoTrueClient instances and ensures proper RLS policy evaluation.
  */
 export function getSupabaseClient(clerkUserId?: string | null): SupabaseClient {
-  if (clerkUserId && clerkUserId !== "guest_user") {
-    (supabase as any).rest.headers["x-clerk-user-id"] = clerkUserId;
-  } else {
-    delete (supabase as any).rest.headers["x-clerk-user-id"];
+  if (supabase) {
+    const restClient = (supabase as any).rest;
+    if (restClient && restClient.headers) {
+      if (clerkUserId && clerkUserId !== "guest_user") {
+        restClient.headers.set("x-clerk-user-id", clerkUserId);
+      } else {
+        restClient.headers.delete("x-clerk-user-id");
+      }
+    }
   }
   return supabase;
 }
