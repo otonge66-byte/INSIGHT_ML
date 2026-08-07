@@ -89,6 +89,8 @@ export interface ProgressSummary {
   currentRank: string;
   isSyncError: boolean;
   errorMessage?: string;
+  completedVideosCount?: number;
+  earnedCertificatesCount?: number;
 }
 
 export const XP_RATES = {

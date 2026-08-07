@@ -2,11 +2,15 @@
 
 import React, { useState, useEffect } from "react";
 import { CozySidebar } from "@/components/ui/CozySidebar";
+import { useSessionTimer } from "@/lib/progress/useSessionTimer";
 
 export const GlobalNavigation: React.FC<{ children?: React.ReactNode }> = ({
   children,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
+
+  // Mount session timer hook globally
+  useSessionTimer();
 
   // Prevent background scrolling when sidebar drawer is open
   useEffect(() => {

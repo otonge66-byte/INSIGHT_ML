@@ -156,8 +156,34 @@ export const ProgressDashboard: React.FC = () => {
             </div>
           </div>
 
+          {/* Videos Completed */}
+          <div className="bg-[#121e17] border-2 border-[#2a5c30] p-3.5 shadow-[2px_2px_0px_#000000] flex flex-col justify-between">
+            <span className="font-pixel text-[8px] text-[#8fc99a] uppercase">
+              📹 VIDEOS WATCHED
+            </span>
+            <p className="font-vt323 text-4xl text-[#7ecb8a] font-bold my-1">
+              {summary.completedVideosCount || 0}
+            </p>
+            <span className="font-sans text-[10px] text-[#8fc99a]">
+              Lectures Passed
+            </span>
+          </div>
+
+          {/* Certificates Earned */}
+          <div className="bg-[#121e17] border-2 border-[#2a5c30] p-3.5 shadow-[2px_2px_0px_#000000] flex flex-col justify-between">
+            <span className="font-pixel text-[8px] text-[#dda15e] uppercase">
+              🎓 CERTIFICATES
+            </span>
+            <p className="font-vt323 text-4xl text-[#dda15e] font-bold my-1">
+              {summary.earnedCertificatesCount || 0} / 3
+            </p>
+            <span className="font-sans text-[10px] text-[#dda15e]">
+              Verified Specialist
+            </span>
+          </div>
+
           {/* Current Rank & Achievements */}
-          <div className="bg-[#121e17] border-2 border-[#2a5c30] p-3.5 shadow-[2px_2px_0px_#000000] flex flex-col justify-between sm:col-span-2">
+          <div className="bg-[#121e17] border-2 border-[#2a5c30] p-3.5 shadow-[2px_2px_0px_#000000] flex flex-col justify-between sm:col-span-3">
             <div className="flex items-center justify-between">
               <span className="font-pixel text-[8px] text-[#8fc99a] uppercase">
                 🎖️ CURRENT RANK

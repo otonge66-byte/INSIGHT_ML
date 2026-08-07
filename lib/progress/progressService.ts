@@ -14,6 +14,8 @@ import {
 import { fetchAchievements, unlockAchievement } from "../database/achievementService";
 import { fetchLearningSessions, logLearningSession } from "../database/sessionService";
 import { fetchBadges, awardBadge } from "../database/badgeService";
+import { fetchUserVideoProgressList } from "../database/videoService";
+import { fetchCertificates } from "../database/certificateService";
 import {
   UserProfile,
   UserProgress,
@@ -165,6 +167,8 @@ export async function fetchUserProgressSummary(
   let badges: any[] = [];
   let isSyncError = false;
   let errorMessage: string | undefined = undefined;
+  let completedVideosCount = 0;
+  let earnedCertificatesCount = 0;
 
   if (!isSupabaseConfigured) {
     console.warn("[WARNING] fetchUserProgressSummary: Supabase credentials missing in .env.local");
@@ -198,6 +202,12 @@ export async function fetchUserProgressSummary(
       fetchAchievements(client, userId),
       fetchBadges(client, userId),
       fetchLearningSessions(client, userId),
+      fetchUserVideoProgressList(userId).then((vids) => {
+        completedVideosCount = vids.filter((v) => v.quiz_completed).length;
+      }),
+      fetchCertificates(userId).then((certs) => {
+        earnedCertificatesCount = certs.length;
+      }),
     ]);
   } catch (e: any) {
     isSyncError = true;
@@ -228,6 +238,8 @@ export async function fetchUserProgressSummary(
     currentRank,
     isSyncError,
     errorMessage,
+    completedVideosCount,
+    earnedCertificatesCount,
   };
 }
 
@@ -363,3 +375,43 @@ export async function recordLearningActivity(
 
   return fetchUserProgressSummary(userId);
 }
+
+/** Increments total learning minutes and daily activity minutes in real-time. */
+export async function incrementLearningTime(
+  clerkUserId: string,
+  durationMinutes: number
+): Promise<void> {
+  if (!clerkUserId || clerkUserId === "guest_user" || !isSupabaseConfigured) return;
+  const client = getSupabaseClient(clerkUserId);
+  const todayStr = getTodayDateString();
+
+  try {
+    // 1. Fetch current progress and increment total_learning_minutes
+    const progress = await fetchProgress(client, clerkUserId);
+    if (progress) {
+      await upsertProgress(client, {
+        ...progress,
+        total_learning_minutes: (progress.total_learning_minutes || 0) + durationMinutes,
+        last_activity_date: todayStr,
+      });
+    }
+
+    // 2. Fetch daily activities and increment learning_minutes for today
+    const dailyActivities = await fetchDailyActivities(client, clerkUserId);
+    const todayAct = dailyActivities[todayStr];
+    await upsertDailyActivity(client, clerkUserId, {
+      activity_date: todayStr,
+      xp: todayAct?.xp ?? 0,
+      learning_minutes: (todayAct?.learning_minutes ?? 0) + durationMinutes,
+      completed_modules: todayAct?.completed_modules ?? 0,
+      completed_challenges: todayAct?.completed_challenges ?? 0,
+      streak_counted: todayAct?.streak_counted ?? true,
+    });
+    console.log(`[DEBUG] incrementLearningTime: Incremented ${durationMinutes} min for ${clerkUserId}`);
+  } catch (err: any) {
+    console.error(
+      `[ERROR] incrementLearningTime failed for user "${clerkUserId}": Code: ${err?.code} | Message: ${err?.message}`
+    );
+  }
+}
+

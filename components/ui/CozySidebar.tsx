@@ -11,8 +11,8 @@ const NAVIGATION_ITEMS = [
   { name: "Gradient", href: "/playground/gradient-descent", icon: "📉", badge: "Mountain" },
   { name: "Neural Net", href: "/playground/neural-net", icon: "🧠", badge: "Forest" },
   { name: "My Progress", href: "/progress", icon: "📊", badge: "Stats" },
-  { name: "Quests", href: "/#quests", icon: "📜", badge: "3/5" },
-  { name: "Badges", href: "/#badges", icon: "🏆", badge: "4/8" },
+  { name: "Videos", href: "/videos", icon: "📹", badge: "ML Prep" },
+  { name: "Certificates", href: "/certificates", icon: "🎓", badge: "Earned" },
   { name: "Applied Projects", href: "/playground/perceptron?mode=project", icon: "🛠️", badge: "3 Applied" },
 ];
 
