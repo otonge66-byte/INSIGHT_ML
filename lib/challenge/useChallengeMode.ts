@@ -5,6 +5,7 @@ import { ChallengeDefinition, ChallengeMetrics } from "./types";
 import { saveChallengeProgress, getSavedChallengeProgress, SavedChallengeProgress } from "./storage";
 import { recordLearningActivity } from "@/lib/progress/progressService";
 import { XP_RATES } from "@/lib/progress/types";
+import { useUser } from "@clerk/nextjs";
 
 export type ChallengeStatus = "idle" | "running" | "requirements_met" | "verifying" | "completed" | "saved";
 
@@ -32,8 +33,10 @@ function areMetricsEqual(a: ChallengeMetrics, b: ChallengeMetrics): boolean {
     a.numHiddenLayers === b.numHiddenLayers
   );
 }
-
 export function useChallengeMode(challenge: ChallengeDefinition): UseChallengeReturn {
+  const { user } = useUser();
+  const userId = user?.id;
+
   const [status, setStatus] = useState<ChallengeStatus>("idle");
   const [isWon, setIsWon] = useState(false);
   const [stars, setStars] = useState<1 | 2 | 3>(1);
@@ -93,24 +96,26 @@ export function useChallengeMode(challenge: ChallengeDefinition): UseChallengeRe
       setStatus("saved");
     }
 
-    // Automatically trigger Supabase / Progress update
-    try {
-      const xp = computedStars === 3 ? XP_RATES.PERFECT_CHALLENGE : XP_RATES.CHALLENGE;
-      recordLearningActivity({
-        userId: "clerk_user", // Will be replaced by active Clerk ID in progressService/client
-        moduleName: challengeRef.current.id,
-        mode: "Challenge",
-        xpEarned: xp,
-        completedChallengeId: challengeRef.current.id,
-        durationMinutes: 3,
-      });
-    } catch (e) {
-      console.warn("Auto-progress recording notice:", e);
+    // Automatically trigger Supabase / Progress update if signed in
+    if (userId) {
+      try {
+        const xp = computedStars === 3 ? XP_RATES.PERFECT_CHALLENGE : XP_RATES.CHALLENGE;
+        recordLearningActivity({
+          userId: userId,
+          moduleName: challengeRef.current.id,
+          mode: "Challenge",
+          xpEarned: xp,
+          completedChallengeId: challengeRef.current.id,
+          durationMinutes: 3,
+        });
+      } catch (e) {
+        console.warn("Auto-progress recording notice:", e);
+      }
     }
-
+ 
     console.log("Opening Popup");
     setShowModal(true);
-  }, []);
+  }, [userId]);
 
   const update = useCallback(
     (metrics: ChallengeMetrics) => {
