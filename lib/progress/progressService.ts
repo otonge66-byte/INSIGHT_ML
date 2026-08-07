@@ -90,7 +90,7 @@ export async function ensureUserProfileAndProgress(
 ): Promise<void> {
   if (!clerkUserId || !isSupabaseConfigured) return;
 
-  const client = getSupabaseClient();
+  const client = getSupabaseClient(clerkUserId);
 
   try {
     console.log(`[DEBUG] ensureUserProfileAndProgress (Supabase): syncing for Clerk ID "${clerkUserId}"`);
@@ -125,7 +125,7 @@ export async function ensureUserProfileAndProgress(
 export async function fetchUserProgressSummary(
   userId: string
 ): Promise<ProgressSummary> {
-  const client = getSupabaseClient();
+  const client = getSupabaseClient(userId);
 
   let profile: UserProfile | null = null;
   let progress: UserProgress = createInitialProgress(userId);
@@ -239,7 +239,7 @@ export async function recordLearningActivity(
     loss,
   } = params;
 
-  const client = getSupabaseClient();
+  const client = getSupabaseClient(userId);
   const todayStr = getTodayDateString();
 
   try {

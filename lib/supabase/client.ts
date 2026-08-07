@@ -25,8 +25,13 @@ export const supabase: SupabaseClient = createClient(supabaseUrl, supabaseAnonKe
 
 /**
  * Returns the exact SINGLETON browser client instance.
- * Never creates new GoTrueClient instances.
+ * Dynamically injects the Clerk User ID header on the singleton client.
  */
-export function getSupabaseClient(): SupabaseClient {
+export function getSupabaseClient(clerkUserId?: string | null): SupabaseClient {
+  if (clerkUserId && clerkUserId !== "guest_user") {
+    (supabase as any).rest.headers["x-clerk-user-id"] = clerkUserId;
+  } else {
+    delete (supabase as any).rest.headers["x-clerk-user-id"];
+  }
   return supabase;
 }
