@@ -386,15 +386,18 @@ export async function incrementLearningTime(
   const todayStr = getTodayDateString();
 
   try {
-    // 1. Fetch current progress and increment total_learning_minutes
+    // 1. Fetch current progress and check if initialized
     const progress = await fetchProgress(client, clerkUserId);
-    if (progress) {
-      await upsertProgress(client, {
-        ...progress,
-        total_learning_minutes: (progress.total_learning_minutes || 0) + durationMinutes,
-        last_activity_date: todayStr,
-      });
+    if (!progress) {
+      console.warn(`[WARN] incrementLearningTime: user progress not initialized for "${clerkUserId}". Skipping timer update.`);
+      return;
     }
+
+    await upsertProgress(client, {
+      ...progress,
+      total_learning_minutes: (progress.total_learning_minutes || 0) + durationMinutes,
+      last_activity_date: todayStr,
+    });
 
     // 2. Fetch daily activities and increment learning_minutes for today
     const dailyActivities = await fetchDailyActivities(client, clerkUserId);

@@ -122,13 +122,13 @@ create index if not exists idx_badges_clerk_user_id on public.badges(clerk_user_
 -- ==========================================
 -- ROW LEVEL SECURITY (RLS) POLICIES
 -- ==========================================
-alter table public.profiles enable row level security;
-alter table public.user_progress enable row level security;
-alter table public.daily_activity enable row level security;
-alter table public.learning_sessions enable row level security;
-alter table public.module_progress enable row level security;
-alter table public.achievements enable row level security;
-alter table public.badges enable row level security;
+alter table public.profiles disable row level security;
+alter table public.user_progress disable row level security;
+alter table public.daily_activity disable row level security;
+alter table public.learning_sessions disable row level security;
+alter table public.module_progress disable row level security;
+alter table public.achievements disable row level security;
+alter table public.badges disable row level security;
 
 -- Helper to retrieve Clerk User ID from client header x-clerk-user-id
 create or replace function public.current_clerk_user_id() 
